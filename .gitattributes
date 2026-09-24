@@ -1,0 +1,4 @@
+# Official starter-kit files: keep bytes exactly as shipped (no EOL conversion)
+run_submission.py -text
+evaluate.py -text
+examples/** -text
