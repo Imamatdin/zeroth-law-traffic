@@ -1,0 +1,14 @@
+{
+  "id": "EXP-001",
+  "commit": "",
+  "detector": "",
+  "tracker": "",
+  "config": {},
+  "score_a": {
+    "f1_at_0_3": null,
+    "f1_at_0_5": null,
+    "f1_at_0_7": null
+  },
+  "runtime_seconds": null,
+  "notes": ""
+}

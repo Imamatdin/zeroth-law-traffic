@@ -1,0 +1,2 @@
+# Standard library only for the initial scaffold.
+# Pin dependencies after the official starter kit and baseline models are selected.
