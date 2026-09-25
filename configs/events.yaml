@@ -21,9 +21,11 @@ stop_line:
   approach: near
   vehicle_classes: [2, 3, 4, 5]
   min_past_px: 25
+  min_past_box_h: 0.5         # front proxy must be half a box height past the line (corner overshoot)
   max_lateral_margin: 0.05
   min_stop_s: 1.0             # stationary this long past the line during red
   still_rel_speed: 0.15       # body heights per second
+  max_gap_s: 0.2              # a stop is sustained: crawling samples near the threshold do not bridge
   merge_gap_s: 1.0
 
 jaywalking:
