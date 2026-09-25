@@ -1,0 +1,3 @@
+-r requirements.txt
+# Parquet caches are development tooling, not an inference dependency.
+pyarrow==25.0.1
