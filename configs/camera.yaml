@@ -82,7 +82,7 @@ signals:
   # Pedestrian head at the left corner (walking figure at frame 1500); faces the foreground crossings.
   - {id: left_pedestrian, kind: pedestrian, roi: [0.1289, 0.4556, 0.1438, 0.4986], controls: pending}
 
-# Image-plane direction of normal traffic per approach (from the atlas, not legality).
+# Direction of normal traffic per approach in normalized coordinates (from the atlas, not legality).
 approaches:
   - {id: near, description: "near carriageway, upper-left towards the junction", direction: [0.86, 0.51]}
   - {id: far, description: "far carriageway, leaving the junction towards upper-left", direction: [-0.89, -0.46]}

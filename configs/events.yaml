@@ -1,1 +1,36 @@
-# Event definitions and thresholds must be derived from organizer rules and samples.
+# Event engine parameters. Every class stays enabled: false until it shows near-zero false
+# fires on all sample footage (and recall where the samples contain it). Scores on C3905 are
+# in-sample and provisional until the teammates' two-pass labels lock G1.
+defaults:
+  merge_gap_s: 0.0
+  min_dur_s: 0.0
+
+red_light:
+  enabled: false
+  stop_line: near_stop
+  approach: near
+  vehicle_classes: [2, 3, 4, 5]
+  min_alignment: 0.5          # cos of angle between velocity and approach direction
+  min_past_px: 25             # front point must get this far past the line (jitter guard)
+  max_lateral_margin: 0.05    # fraction of stop-line length beyond its ends still counted
+  merge_gap_s: 0.0
+
+stop_line:
+  enabled: false
+  stop_line: near_stop
+  approach: near
+  vehicle_classes: [2, 3, 4, 5]
+  min_past_px: 25
+  max_lateral_margin: 0.05
+  min_stop_s: 1.0             # stationary this long past the line during red
+  still_rel_speed: 0.15       # body heights per second
+  merge_gap_s: 1.0
+
+jaywalking:
+  enabled: false
+  min_on_road_s: 1.0          # persistence before a pedestrian counts as on the carriageway
+  max_gap_s: 0.5              # hysteresis: brief off-road blips do not end the event
+  crosswalk_margin_px: 20     # foot points this close to a crossing or refuge count as on it
+  rider_overlap: 0.5          # person boxes overlapping a bicycle/motorcycle this much are riders
+  merge_gap_s: 1.0
+  min_dur_s: 1.0

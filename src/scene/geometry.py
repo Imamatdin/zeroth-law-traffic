@@ -55,6 +55,8 @@ class Scene:
     intersection: np.ndarray | None = None
     stop_lines: dict[str, np.ndarray] = field(default_factory=dict)
     signals: dict[str, dict] = field(default_factory=dict)
+    approaches: dict[str, dict] = field(default_factory=dict)
+    stop_line_meta: dict[str, dict] = field(default_factory=dict)
     verified: dict[str, bool] = field(default_factory=dict)
 
     @classmethod
@@ -81,6 +83,9 @@ class Scene:
             scene.intersection = px(raw["intersection"])
         for line in raw.get("stop_lines", []) or []:
             scene.stop_lines[line["id"]] = px(line["points"])
+            scene.stop_line_meta[line["id"]] = {k: v for k, v in line.items() if k != "points"}
+        for app in raw.get("approaches", []) or []:
+            scene.approaches[app["id"]] = app
         for sig in raw.get("signals", []) or []:
             x1, y1, x2, y2 = sig["roi"]
             roi = px([[x1, y1], [x2, y2]]).round().astype(int).ravel()
