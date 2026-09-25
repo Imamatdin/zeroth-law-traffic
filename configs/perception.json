@@ -1,0 +1,6 @@
+{
+  "detector": {"weights": "weights/yolo11m.pt", "imgsz": 960, "conf": 0.1, "iou": 0.6,
+               "device": "cpu", "prescale_width": 1920, "half": false},
+  "tracker": {"track_high_thresh": 0.25, "track_low_thresh": 0.1, "new_track_thresh": 0.25,
+              "match_thresh": 0.8, "buffer_s": 2.0}
+}
