@@ -1,0 +1,22 @@
+{
+  "video": "C3905.MP4",
+  "annotator": "claude-review",
+  "status": "proposal, not adjudicated; coarse coverage only",
+  "duration": 127.6275,
+  "fps": 29.97002997002997,
+  "method": "Candidates from YOLO11m+ByteTrack tracks and configs/camera.yaml, then exact-frame review sheets (scripts/render_review.py). Only windows listed under reviewed_windows were checked; absence elsewhere is not a negative label.",
+  "events": [
+    {"start": 11.7, "end": 20.3, "label": "jaywalking", "who": "track 18, man in dark clothes",
+     "note": "On near crossing at 11.41 s, off it and on carriageway by 12.01 s; walks diagonally across the junction past refuge_upper to refuge_lower. Start between 11.41 and 12.01 (0.3 s sampling)."}
+  ],
+  "uncertain": [
+    {"t": 20.3, "question": "Track 18 end: does he stand on the road beside refuge_lower until ~31 s (tracker says off-island 22.0-31.1 s) or on the island?"},
+    {"t": 33.7, "question": "Vehicle crosses near_stop during red+amber (green at 34.53 s). red_light or anticipatory start that annotators ignore?"},
+    {"t": 76.0, "question": "Tracks 1776 (0.41,0.56) stationary 76-117 s on cross_near during red (75.48-114.51): stop_line? Also 1744/2296/2391 stationary inside the junction box: stop_line, queue of another movement, or blocked by the long truck?"},
+    {"t": 10.0, "question": "Far carriageway: tracks 3, 8, 10, 2566 stationary 10-25 s at (0.08-0.44, 0.10-0.24). Queue behind the bus stop, parked, or stopped_vehicle?"},
+    {"t": 1.5, "question": "Track 5 stationary 1.5-13.4 s at (0.79,0.51) on the right road next to cross_far: yielding to pedestrians (normal) or stopped_vehicle?"}
+  ],
+  "reviewed_windows": [[6.0, 31.0, "pedestrian tracks 12, 16, 18 (12 and 16 stay on cross_near: no event)"]],
+  "signal_phases_near_approach": [[0.0, 34.53, "red (red+amber shown before green)"], [34.53, 72.47, "green (flashing from 69.47)"],
+                                  [72.47, 75.48, "yellow"], [75.48, 114.51, "red"], [114.51, 127.6275, "green"]]
+}

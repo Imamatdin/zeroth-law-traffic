@@ -55,7 +55,8 @@ islands:
   - {id: refuge_lower, polygon: [[0.3555, 0.8069], [0.4172, 0.7569], [0.5031, 0.8153], [0.4359, 0.8431]]}
 
 crosswalks:
-  - {id: cross_near, polygon: [[0.1484, 0.5764], [0.52, 0.478], [0.62, 0.488], [0.62, 0.512], [0.1859, 0.625]]}
+  # Upper edge widened ~0.01: people walk along the stripe edge (review of tracks 12, 16).
+  - {id: cross_near, polygon: [[0.1484, 0.5644], [0.52, 0.466], [0.62, 0.478], [0.62, 0.512], [0.1859, 0.625]]}
   - {id: cross_far, polygon: [[0.655, 0.487], [0.95, 0.425], [0.965, 0.455], [0.68, 0.525]]}
   - {id: cross_foreground_upper, polygon: [[0.0898, 0.7194], [0.1594, 0.6819], [0.2680, 0.8056], [0.2133, 0.8472]]}
   - {id: cross_foreground_lower, polygon: [[0.2172, 0.8417], [0.2852, 0.8056], [0.4531, 0.9986], [0.3242, 0.9986]]}
