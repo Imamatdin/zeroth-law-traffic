@@ -84,7 +84,9 @@ class Scene:
         for sig in raw.get("signals", []) or []:
             x1, y1, x2, y2 = sig["roi"]
             roi = px([[x1, y1], [x2, y2]]).round().astype(int).ravel()
-            scene.signals[sig["id"]] = {**sig, "roi_px": tuple(int(v) for v in roi)}
+            lamps = {name: tuple(int(v) for v in px([[b[0], b[1]], [b[2], b[3]]]).round().astype(int).ravel())
+                     for name, b in (sig.get("lamps") or {}).items()}
+            scene.signals[sig["id"]] = {**sig, "roi_px": tuple(int(v) for v in roi), "lamps_px": lamps}
         return scene
 
     def regions_of(self, kind: str) -> list[Region]:

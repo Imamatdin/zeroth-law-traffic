@@ -1,1 +1,89 @@
-# Camera geometry is unknown until sample videos arrive.
+# Scene map for the WIUT CV-track camera (fixed view). Coordinates are fractions of frame
+# width/height. No camera.md was provided: shapes are traced on the 3840x2160 sample and
+# cross-checked against the flow atlas (vehicle flow), pedestrian heatmap and dwell map
+# built from real YOLO11m+ByteTrack tracks (configs/atlas.json).
+# `verified` records which facts have independent evidence. Lane-level legality is not
+# known and must not be inferred from observed frequency.
+frame: {width: 3840, height: 2160}
+coords: normalized
+
+verified:
+  crosswalks: true        # stripes visible + pedestrian heatmap
+  islands: true           # raised refuges visible
+  median: true
+  sidewalks: approximate  # curbs partly hidden by trees/poles
+  stop_line: true         # white bar in front of the near crossing
+  signal_vehicle: true    # median head governs the near approach (58 stop-line crossings vs colour)
+  intersection: approximate
+  lane_polygons: false
+  legal_movements: false
+
+# Everything a vehicle can drive on; sidewalks, median and islands are subtracted.
+road:
+  - [0.0, 0.05]
+  - [0.15, 0.08]
+  - [0.30, 0.13]
+  - [0.46, 0.215]
+  - [0.52, 0.235]
+  - [0.58, 0.255]
+  - [0.64, 0.27]
+  - [0.70, 0.295]
+  - [0.74, 0.32]
+  - [0.80, 0.365]
+  - [0.86, 0.405]
+  - [0.92, 0.44]
+  - [1.0, 0.45]
+  - [1.0, 1.0]
+  - [0.0, 1.0]
+
+sidewalks:
+  - id: left_plaza
+    polygon: [[0.0, 0.17], [0.04, 0.26], [0.07, 0.36], [0.085, 0.46], [0.10, 0.51], [0.14, 0.515],
+              [0.175, 0.53], [0.175, 0.585], [0.12, 0.68], [0.05, 0.73], [0.0, 0.76]]
+  - id: foreground_left_corner
+    polygon: [[0.0, 0.93], [0.05, 0.955], [0.0, 1.0]]
+
+median:
+  - id: main_median
+    polygon: [[0.05, 0.115], [0.30, 0.265], [0.58, 0.44], [0.625, 0.47], [0.62, 0.49],
+              [0.57, 0.485], [0.30, 0.30], [0.05, 0.14]]
+
+islands:
+  - {id: median_nose, polygon: [[0.615, 0.505], [0.66, 0.50], [0.69, 0.515], [0.675, 0.53], [0.63, 0.525]]}
+  - {id: refuge_upper, polygon: [[0.2617, 0.7333], [0.3266, 0.6306], [0.3992, 0.7222]]}
+  - {id: refuge_left, polygon: [[0.0594, 0.8889], [0.1406, 0.8125], [0.2195, 0.8708]]}
+  - {id: refuge_lower, polygon: [[0.3555, 0.8069], [0.4172, 0.7569], [0.5031, 0.8153], [0.4359, 0.8431]]}
+
+crosswalks:
+  - {id: cross_near, polygon: [[0.1484, 0.5764], [0.52, 0.478], [0.62, 0.488], [0.62, 0.512], [0.1859, 0.625]]}
+  - {id: cross_far, polygon: [[0.655, 0.487], [0.95, 0.425], [0.965, 0.455], [0.68, 0.525]]}
+  - {id: cross_foreground_upper, polygon: [[0.0898, 0.7194], [0.1594, 0.6819], [0.2680, 0.8056], [0.2133, 0.8472]]}
+  - {id: cross_foreground_lower, polygon: [[0.2172, 0.8417], [0.2852, 0.8056], [0.4531, 0.9986], [0.3242, 0.9986]]}
+
+stop_lines:
+  - {id: near_stop, points: [[0.147, 0.508], [0.488, 0.432]], approach: near, signal: median_vehicle}
+
+# The junction box beyond the near stop line and crossing (approximate).
+intersection: [[0.186, 0.625], [0.584, 0.508], [0.69, 0.522], [1.0, 0.46], [1.0, 0.70],
+               [0.62, 0.72], [0.40, 0.66], [0.27, 0.70]]
+
+signals:
+  # Vehicle head on the median pole: red at frame 0, green at frame 1500. Which approach it
+  # governs is measured, not assumed (see verified.signal_vehicle).
+  - id: median_vehicle
+    kind: vehicle
+    roi: [0.5875, 0.3222, 0.6164, 0.3972]
+    lamps:   # front-facing head, one cell per lamp (top to bottom)
+      red: [0.6015, 0.3425, 0.6075, 0.3525]
+      yellow: [0.6015, 0.3585, 0.6075, 0.3685]
+      green: [0.6010, 0.3745, 0.6070, 0.3845]
+    controls: [near]   # measured: colour sequence matches every near_stop crossing (58/58 on C3905)
+  # Pedestrian head at the left corner (walking figure at frame 1500); faces the foreground crossings.
+  - {id: left_pedestrian, kind: pedestrian, roi: [0.1289, 0.4556, 0.1438, 0.4986], controls: pending}
+
+# Image-plane direction of normal traffic per approach (from the atlas, not legality).
+approaches:
+  - {id: near, description: "near carriageway, upper-left towards the junction", direction: [0.86, 0.51]}
+  - {id: far, description: "far carriageway, leaving the junction towards upper-left", direction: [-0.89, -0.46]}
+  - {id: right_entry, description: "from the right edge, heading left into the junction", direction: [-1.0, -0.1]}
+  - {id: through_exit, description: "lower-right exit beyond the junction", direction: [0.95, 0.30]}
