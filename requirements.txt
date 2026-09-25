@@ -1,2 +1,2 @@
-# Standard library only for the initial scaffold.
-# Pin dependencies after the official starter kit and baseline models are selected.
+# Reuse the unchanged organizer dependencies. Model dependencies follow Stage 3.
+-r docs/starter_kit/requirements.txt

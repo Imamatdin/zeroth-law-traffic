@@ -1,47 +1,52 @@
 # Zeroth Law Traffic
 
-Traffic event detection and anticipation from video. This repository is the team workspace for a hackathon submission and, later, a reusable traffic analytics project.
+Traffic event detection and causal accident anticipation for the WIUT Hackathon 2026 Computer Vision track.
 
-## Status
+## Current status
 
-**Scaffold only (2026-09-24).** The organizer starter kit, sample videos, exact output schema, scoring equation, constraints, and deadline have not been supplied here. No current file is claimed to be a valid submission or to earn a score. Add the official starter kit unchanged in its first commit, then adapt this scaffold to its contract.
+The official starter kit is integrated unchanged. Its zero-event, zero-risk baseline passed format validation on the available sample. The solution is still that baseline: no trained perception or event engine is active.
 
-## Intended pipeline
+Development infrastructure includes typed data contracts, a detector/tracker cache interface, an evaluator for saved predictions, exact-frame review sheets, and geometry-overlay tooling. Camera verification and dev-label adjudication are in progress. No detection accuracy or anticipation performance is claimed yet.
 
-```text
-video -> detections -> tracks -> scene state -> event/risk logic
-      -> official predictions -> official evaluator -> submission
-```
+## Install and run
 
-Cache detections and tracks under ignored `cache/` so event thresholds can be evaluated without rerunning perception. Keep evidence-rich internal events; strip them to the official schema only at the final adapter.
-
-## Repository layout
-
-- `solution.py`: provisional zero-event, zero-risk interface; signatures must be reconciled with the starter kit.
-- `run_submission.py`: entry point reserved for the official runner contract.
-- `configs/`: camera geometry, event, and risk settings; sample values are intentionally absent.
-- `src/`: perception, scene, features, events, anticipation, and postprocessing modules.
-- `scripts/`: video inspection, rendering, benchmarking, development evaluation, and submission verification.
-- `annotations/`: human labels and camera maps, once samples arrive.
-- `experiments/`: experiment log template and results.
-- `web/`: visualization consuming the same rich pipeline output.
-- `docs/`: decisions and handoffs.
-
-## Check the scaffold
+Python 3.10+; development currently uses Python 3.11.
 
 ```bash
-python -m compileall -q solution.py run_submission.py src
-python run_submission.py --help
+python -m pip install -r requirements.txt
+python -c "from pathlib import Path; Path('outputs').mkdir(exist_ok=True)"
+python run_submission.py --videos data/samples --out outputs/predictions.json --team zeroth-law
+python evaluate.py --pred outputs/predictions.json --validate-only
 ```
 
-After the starter kit arrives, the first milestone is a valid zero-score baseline: connect `solution.py` and `run_submission.py` to the **official** interface, run the official evaluator in validation mode, and commit the resulting working baseline. The commands and output shape must come from that kit; do not assume the example commands in the planning note are authoritative.
+Videos, weights, caches and generated outputs are excluded from Git. The current baseline has no weights to download. `run_submission.py` and `evaluate.py` must remain byte-identical to the organizer kit.
+
+For development tools and checks:
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m unittest discover -s tests -v
+```
+
+See `scripts/README.md` for review, cache and evaluation commands. `--pred` in the dev evaluator scores an existing file without rerunning inference; `--videos` explicitly runs the official harness. Organizer example files are test fixtures, not labels for the sample videos.
+
+## Architecture
+
+```text
+video -> detections -> tracks -> scene state -> event engines
+      -> rich evidence -> segment postprocessing -> official predictions
+
+streamed past/current frames -> independent causal state -> risk(t)
+```
+
+The proposed system combines scene rules, trajectory/interaction features, and a flow atlas of normal traffic. These model components are planned, not implemented performance claims. Observed movement frequency does not establish legal permission.
+
+The harness runs Part A before Part B and applies one shared per-video time budget. Part B never reads the video file, future frames, or Part A output. Model weights may be shared for inference; trackers and other temporal state must remain independent.
+
+The organizer rules are in `docs/task_spec.md`; module and data contracts are in `docs/ARCHITECTURE.md`; teammate deliverables are specified in `docs/TEAM_BRIEF.md`.
 
 ## Team workflow
 
-`main` must remain runnable. Use short branches such as `feat/tracking`, `feat/annotation-tooling`, `feat/risk`, and `feat/website`; run the relevant checks before merging. Keep experimental video, model weights, caches, and generated output out of Git.
+Iko owns the main workflow, architecture, integration, website and submission. Jalol and Javohir contribute through the separate lanes defined in the team brief; these responsibilities are assignments, not claims of completed contributions. Use short branches and keep `main` runnable. Teammate work stays under `contrib/<name>/` on `team/<name>` until integrated.
 
-Suggested ownership: lead owns architecture, integration, scoring, and final packaging; one teammate owns annotations and camera geometry; another owns the website and visualization. Assign actual people and checkpoints once their GitHub handles and availability are known.
-
-## Next information needed
-
-Official starter kit and evaluator; task constraints, scoring equation, and deadline; sample videos and license; teammate GitHub handles. Record each in `docs/handoff-2026-09-24.md` as it becomes available.
+Before submission, add the selected model and dataset licences, training/inference settings and seeds, weights with checksums, measured runtime, reproducibility evidence, team contributions, and final `predictions_samples.json`. The website and final submission package remain pending.

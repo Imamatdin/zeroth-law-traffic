@@ -125,13 +125,14 @@ class NMClassifier:
 
 | File | Columns |
 |---|---|
-| `meta.json` | fps, n_frames, width, height, duration, detector, tracker, stride, coords (`homography` or `normalized`), commit |
+| `meta.json` | fps, n_frames, width, height, duration, coords (`pixels` for perception), request (source identity, pipeline fingerprints, stride), schema_version, complete, row_counts |
+| `frames.parquet` | frame, t; sampled inference frames, including frames with zero detections |
 | `detections.parquet` | frame, t, x1, y1, x2, y2, cls, score |
 | `tracks.parquet` | frame, t, track_id, cls, score, x1, y1, x2, y2, fx, fy (foot point = bottom-center) |
 | `world.parquet` | frame, t, track_id, cls, gx, gy, vx, vy, ax, ay, speed, heading, lane_id, in_road, in_crosswalk, in_intersection, lane_dir_err, stationary_s, age_s |
 | `pairs.parquet` | frame, t, id_a, id_b, dist, closing_speed, tca, dmin, heading_diff, path_conflict, lane_conflict, brake_a, brake_b, swerve_a, swerve_b |
 
-`t` is always `frame / fps`. `gx, gy` are homography ground coordinates only if real correspondences exist, else normalized image coordinates; `meta.json` records which. Velocities come from a smoothed estimate over a short window, never adjacent-frame differences.
+`t` is always `frame / fps`. `gx, gy` are homography ground coordinates only if real correspondences exist, else normalized image coordinates; world-cache metadata must record that basis when Stage 4 is implemented. The current perception cache contains pixel coordinates only. Velocities come from a smoothed estimate over a short window, never adjacent-frame differences.
 
 Pair features: `r = p_b - p_a`, `v = v_b - v_a`, `tca = max(0, -(r·v) / (|v|² + eps))`, `dmin = |r + tca·v|`. Keep only pairs with lane/path conflict or among each object's k nearest neighbours.
 
@@ -160,7 +161,7 @@ Built offline from cached sample tracks by `src/atlas/`, stored in `configs/atla
 | `interaction_baseline` | Percentiles (for example p1, p5, p50) of `tca`, `dmin`, `closing_speed` over normal traffic |
 | `coverage` | Cells and movements with too few samples, marked low-confidence |
 
-The atlas is authoritative only where coverage is adequate; `camera.yaml` wins elsewhere. No `camera.md` was provided with the samples, so lane directions and legal movements in `camera.yaml` are derived from sample frames plus observed traffic and cross-checked against the atlas.
+The atlas estimates normal movement only where coverage is adequate; `camera.yaml` supplies independently verified scene facts. No `camera.md` was provided with the samples. Lane directions can be estimated from frames and observed flow, but legal permissions and prohibitions need markings, signs or organizer guidance. Frequent movement is not proof of legality; unsupported restrictions remain unknown.
 
 ## Reference points per rule (from the official start/end conventions)
 

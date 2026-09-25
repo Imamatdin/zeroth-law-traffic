@@ -1,0 +1,22 @@
+name: Development checks
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            docs/starter_kit/requirements.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -B -m unittest discover -s tests -v
