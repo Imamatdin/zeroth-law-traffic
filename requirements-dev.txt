@@ -1,5 +1,6 @@
 -r requirements.txt
-# Parquet caches and feature tables are development tooling, not yet inference dependencies.
+# Parquet cache tooling and read-only decode comparison.
 pyarrow==25.0.1
 pandas==3.0.6
 PyYAML==6.0.3
+scipy==1.17.1

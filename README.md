@@ -4,13 +4,13 @@ Traffic event detection and causal accident anticipation for the WIUT Hackathon 
 
 ## Current status
 
-The official starter kit is integrated unchanged. Its zero-event, zero-risk baseline passed format validation on the available sample. The solution is still that baseline: no trained perception or event engine is active.
+The official starter kit remains unchanged. `solution.py` runs local YOLO11m perception, ByteTrack, an optional Part A stitching hook, the world model, and the enabled event engines with segment postprocessing. The checked-in event configuration currently disables every engine. Risk perception is causal and independent; the risk score intentionally remains 0.0 pending risk logic. No detection accuracy or anticipation performance is claimed.
 
 Development infrastructure includes typed data contracts, a detector/tracker cache interface, an evaluator for saved predictions, exact-frame review sheets, and geometry-overlay tooling. Camera verification and dev-label adjudication are in progress. No detection accuracy or anticipation performance is claimed yet.
 
 ## Install and run
 
-Python 3.10+; development currently uses Python 3.11.
+Python 3.11 is the tested development version. Install the pinned dependencies, then place the provided YOLO11m checkpoint at `weights/yolo11m.pt` before importing the solution. Model loading never downloads weights. Its SHA256 must be `d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95`. The submission archive must include this file; it is not stored in Git.
 
 ```bash
 python -m pip install -r requirements.txt
@@ -19,7 +19,7 @@ python run_submission.py --videos data/samples --out outputs/predictions.json --
 python evaluate.py --pred outputs/predictions.json --validate-only
 ```
 
-Videos, weights, caches and generated outputs are excluded from Git. The current baseline has no weights to download. `run_submission.py` and `evaluate.py` must remain byte-identical to the organizer kit.
+Videos, weights, caches and generated outputs are excluded from Git. `imageio-ffmpeg` supplies the CPU FFmpeg binary through its platform wheel; OpenCV is the fallback. `run_submission.py` and `evaluate.py` must remain byte-identical to the organizer kit. See `docs/runtime_integration.md` for budget assumptions, preprocessing differences, validation and remaining judge-machine checks.
 
 For development tools and checks:
 
