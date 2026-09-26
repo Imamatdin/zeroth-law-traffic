@@ -22,11 +22,12 @@ def main():
     p.add_argument("--cache", type=Path, required=True)
     p.add_argument("--camera", type=Path, default=ROOT / "configs" / "camera.yaml")
     p.add_argument("--events", type=Path, default=ROOT / "configs" / "events.yaml")
+    p.add_argument("--atlas", type=Path, default=ROOT / "configs" / "atlas.json")
     p.add_argument("--labels", nargs="*", choices=sorted(ENGINES))
     p.add_argument("--all", action="store_true", help="run disabled classes too (development only)")
     p.add_argument("--out", type=Path, default=ROOT / "outputs" / "events")
     a = p.parse_args()
-    ctx = VideoContext.from_cache(a.cache, a.camera)
+    ctx = VideoContext.from_cache(a.cache, a.camera, a.atlas)
     raw, segments = run_engines(ctx, load_config(a.events), a.labels, only_enabled=not a.all)
     a.out.mkdir(parents=True, exist_ok=True)
     record = {

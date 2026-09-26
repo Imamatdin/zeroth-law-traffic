@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.atlas.flow import Atlas
 from src.scene.geometry import Scene, side_of_line
 from src.scene.signal import smooth_states
 
@@ -79,6 +80,7 @@ class VideoContext:
     samples: pd.DataFrame          # world kinematics joined with box geometry, one row per track sample
     scene: Scene
     signals: dict[str, SignalTimeline]
+    atlas: Atlas | None = None
 
     @property
     def step_s(self) -> float:
@@ -96,7 +98,7 @@ class VideoContext:
         return rows[["gx", "gy"]].to_numpy() * [self.width, self.height]
 
     @classmethod
-    def from_cache(cls, cache: Path, camera: Path) -> "VideoContext":
+    def from_cache(cls, cache: Path, camera: Path, atlas: Path | None = None) -> "VideoContext":
         import json
 
         meta = json.loads((cache / "meta.json").read_text(encoding="utf-8"))
@@ -113,7 +115,8 @@ class VideoContext:
             df = pd.read_parquet(series)
             signals = {sid: SignalTimeline.from_series(df, sid) for sid in df["signal"].unique()}
         return cls(meta["video_id"], meta["fps"], meta["width"], meta["height"], meta["duration"],
-                   meta["request"]["stride"], samples, scene, signals)
+                   meta["request"]["stride"], samples, scene, signals,
+                   Atlas.load(atlas) if atlas is not None and Path(atlas).exists() else None)
 
 
 def front_point(x1, y1, x2, y2, direction) -> np.ndarray:

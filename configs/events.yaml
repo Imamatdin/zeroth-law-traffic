@@ -42,3 +42,18 @@ jaywalking:
   frame_edge_px: 4            # boxes touching the frame border have no foot point
   merge_gap_s: 1.0
   min_dur_s: 1.0
+
+wrong_way:
+  enabled: false
+  vehicle_classes: [2, 3, 4, 5]
+  min_resultant: 0.8          # atlas cell must have a consistent direction (mean resultant length)
+  min_speed_rel: 0.5          # body heights/s; slower motion gives no heading verdict
+  against_deg: 135            # confirmed wrong way: within 45 degrees of the reverse flow
+  entry_deg: 90               # start backdated over samples already this far against the flow
+  return_deg: 60              # back within this of the flow = returned to a correct lane
+  max_unjudged_backdate_s: 1.0
+  min_persist_s: 1.5
+  max_gap_s: 1.0              # brief unjudged/noisy samples inside a run do not split it
+  min_travel_box_h: 2.0       # must travel at least two of its own box heights against the flow
+  frame_edge_px: 8            # boxes touching the frame border give no heading verdict
+  merge_gap_s: 1.0

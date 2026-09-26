@@ -47,6 +47,7 @@ def track(track_id: int, cls: int, times, xs, ys, w=40.0, h=40.0) -> pd.DataFram
         "frame": np.round(times * FPS).astype(int), "t": times, "track_id": track_id, "cls": cls,
         "cls_major": cls, "gx": xs / W, "gy": ys / H, "vx": vx / W, "vy": vy / H,
         "speed_rel": speed_rel, "stationary_s": stationary, "box_h": h / H,
+        "heading": np.degrees(np.arctan2(vy, vx)), "age_s": times - times[0],
         "x1": xs - w / 2, "y1": ys - h, "x2": xs + w / 2, "y2": ys,
     })
 
