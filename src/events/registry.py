@@ -7,12 +7,12 @@ from pathlib import Path
 import yaml
 
 from src.contracts import Event
-from src.events import jaywalking, red_light, stop_line, wrong_way
+from src.events import jaywalking, red_light, stop_line, stopped_vehicle, wrong_way
 from src.events.base import VideoContext
 from src.postprocess.segments import SegmentRules, postprocess
 
 ENGINES = {"red_light": red_light.detect, "stop_line": stop_line.detect, "jaywalking": jaywalking.detect,
-           "wrong_way": wrong_way.detect}
+           "wrong_way": wrong_way.detect, "stopped_vehicle": stopped_vehicle.detect}
 
 
 def load_config(path: str | Path) -> dict:

@@ -24,10 +24,6 @@
       "question": "Tracks 1776 (0.41,0.56) stationary 76-117 s on cross_near during red (75.48-114.51): stop_line? Also 1744/2296/2391 stationary inside the junction box: stop_line, queue of another movement, or blocked by the long truck?"
     },
     {
-      "t": 10.0,
-      "question": "Far carriageway: tracks 3, 8, 10, 2566 stationary 10-25 s at (0.08-0.44, 0.10-0.24). Queue behind the bus stop, parked, or stopped_vehicle?"
-    },
-    {
       "t": 1.5,
       "question": "Track 5 stationary 1.5-13.4 s at (0.79,0.51) on the right road next to cross_far: yielding to pedestrians (normal) or stopped_vehicle?"
     },
@@ -62,6 +58,18 @@
     {
       "t": 17.5,
       "question": "Track 18 clips refuge_upper's tip for ~1 s mid-crossing: one jaywalking event (engine's choice) or two?"
+    },
+    {
+      "t": 0.0,
+      "question": "Car (track 10) standing at the far kerb beside the bus stop from the first frame to ~85 s, then driving off: stopped_vehicle (engine: 0.00-85.09)? Or a legal stop/drop-off that annotators skip?"
+    },
+    {
+      "t": 0.5,
+      "question": "Car (track 8) standing at the far kerb in the curb lane ~0.5-37.4 s: stopped_vehicle? Same question as track 10."
+    },
+    {
+      "t": 76.0,
+      "question": "Cars standing inside the junction box 76-117 s during the near-approach red (tracks 1744, 2391, 2529, 1433): not labelled stopped_vehicle (standstill); congestion?"
     }
   ],
   "reviewed_windows": [
@@ -84,6 +92,11 @@
       0.0,
       127.6,
       "all jaywalking engine outputs, one mid-event frame each"
+    ],
+    [
+      0.0,
+      127.6,
+      "all 44 vehicle stops >=10 s: 42 explained (signal queue, queue chain, bus stop/kerb stopping place, junction standstill); 2 kerb cars remain as stopped_vehicle candidates"
     ]
   ],
   "signal_phases_near_approach": [

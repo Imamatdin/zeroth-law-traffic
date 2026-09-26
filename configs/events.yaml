@@ -57,3 +57,25 @@ wrong_way:
   min_travel_box_h: 2.0       # must travel at least two of its own box heights against the flow
   frame_edge_px: 8            # boxes touching the frame border give no heading verdict
   merge_gap_s: 1.0
+
+stopped_vehicle:
+  enabled: false
+  vehicle_classes: [2, 3, 4, 5]
+  still_rel_speed: 0.15       # body heights/s
+  min_stop_s: 10.0            # spec: stationary for 10 s or more (of unexplained standing)
+  dwell_radius_h: 0.5         # stopped while the median foot point stays within half a box height
+  dwell_median_s: 1.0         # median filter against box jitter (occlusion by passing vehicles)
+  min_other_stop_s: 3.0       # another vehicle's stop this long marks a normal stopping place
+  place_radius_h: 1.0         # ... if it stood within one box height of this stop
+  place_min_others: 2         # ... and at least this many other vehicles did
+  queue_gap_h: 2.5            # a stationary vehicle this close ahead (box heights) = queue chain
+  queue_lateral_h: 0.6
+  crawl_rel_speed: 0.6        # neighbours slower than this count towards a standstill
+  jam_radius_h: 3.0
+  jam_min_neighbours: 3
+  stop_line: near_stop        # signal queue head on the controlled approach during red
+  approach: near
+  signal_reach_h: 3.0         # queue head within this of the line
+  min_past_box_h: 0.5
+  frame_edge_px: 8
+  merge_gap_s: 1.0
