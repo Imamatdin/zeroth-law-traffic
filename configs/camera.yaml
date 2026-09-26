@@ -50,19 +50,25 @@ median:
 
 islands:
   - {id: median_nose, polygon: [[0.615, 0.505], [0.66, 0.50], [0.69, 0.515], [0.675, 0.53], [0.63, 0.525]]}
-  - {id: refuge_upper, polygon: [[0.2617, 0.7333], [0.3266, 0.6306], [0.3992, 0.7222]]}
-  - {id: refuge_left, polygon: [[0.0594, 0.8889], [0.1406, 0.8125], [0.2195, 0.8708]]}
-  - {id: refuge_lower, polygon: [[0.3555, 0.8069], [0.4172, 0.7569], [0.5031, 0.8153], [0.4359, 0.8431]]}
+  # Refuges re-traced along the outer curb on gridded frame-0 zooms (the draft's vertices lay on asphalt).
+  - {id: refuge_upper, polygon: [[0.318, 0.636], [0.333, 0.636], [0.393, 0.700], [0.392, 0.706], [0.330, 0.724],
+                                 [0.260, 0.745], [0.264, 0.738]]}
+  - {id: refuge_left, polygon: [[0.060, 0.889], [0.166, 0.818], [0.174, 0.818], [0.223, 0.879], [0.220, 0.883],
+                                [0.065, 0.899]]}
+  - {id: refuge_lower, polygon: [[0.357, 0.815], [0.362, 0.806], [0.395, 0.787], [0.455, 0.768], [0.460, 0.770],
+                                 [0.506, 0.822], [0.503, 0.829], [0.378, 0.849], [0.372, 0.846]]}
 
 crosswalks:
   # Upper edge widened ~0.01: people walk along the stripe edge (review of tracks 12, 16).
   - {id: cross_near, polygon: [[0.1484, 0.5644], [0.52, 0.466], [0.62, 0.478], [0.62, 0.512], [0.1859, 0.625]]}
   # Upper edge from the pedestrian path bundle (median nose to the right sidewalk).
   - {id: cross_far, polygon: [[0.645, 0.478], [0.8727, 0.3958], [0.95, 0.415], [0.965, 0.455], [0.68, 0.525]]}
-  # One continuous zebra band from the left plaza corner to the bottom edge (re-traced on frame 0).
-  - {id: cross_foreground, polygon: [[0.075, 0.74], [0.175, 0.70], [0.23, 0.76], [0.29, 0.82], [0.33, 0.865],
-                                     [0.38, 0.915], [0.44, 0.985], [0.455, 1.0], [0.245, 1.0], [0.225, 0.93],
-                                     [0.195, 0.88], [0.16, 0.84], [0.115, 0.79]]}
+  # Zebra band traced along the stripe ends on a gridded frame-0 zoom (left and right edges).
+  - {id: cross_foreground, polygon: [[0.150, 0.688], [0.178, 0.688], [0.254, 0.756], [0.290, 0.780], [0.318, 0.800],
+                                     [0.348, 0.832], [0.390, 0.872], [0.407, 0.900], [0.430, 0.955], [0.450, 1.0],
+                                     [0.320, 1.0], [0.305, 0.965], [0.285, 0.925], [0.265, 0.890], [0.245, 0.865],
+                                     [0.215, 0.838], [0.185, 0.812], [0.160, 0.786], [0.130, 0.760], [0.095, 0.738],
+                                     [0.088, 0.728]]}
 
 stop_lines:
   - {id: near_stop, points: [[0.147, 0.508], [0.488, 0.432]], approach: near, signal: median_vehicle}

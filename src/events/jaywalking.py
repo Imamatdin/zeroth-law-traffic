@@ -69,6 +69,22 @@ def near_safe_area(ctx: VideoContext, foot: np.ndarray, margin) -> np.ndarray:
     return safe
 
 
+def _bridge_walk_through(segments, t: np.ndarray, stationary_s: np.ndarray, cfg: dict) -> list[tuple[int, int]]:
+    """Merge on-road segments separated by a short safe-area contact the pedestrian walked through
+    without stopping (clipping a refuge tip mid-crossing); stopping on the refuge ends the event."""
+    out: list[list[int]] = []
+    for _, _, i0, i1 in segments:
+        if out:
+            p1 = out[-1][1]
+            gap = t[i0] - t[p1]
+            if (gap <= cfg.get("walk_through_gap_s", 0.0)
+                    and np.max(stationary_s[p1:i0 + 1]) < cfg.get("walk_through_max_still_s", 0.0)):
+                out[-1][1] = i1
+                continue
+        out.append([i0, i1])
+    return [(a, b) for a, b in out]
+
+
 def detect(ctx: VideoContext, cfg: dict) -> list[Event]:
     if ctx.scene.road is None:
         return []
@@ -80,20 +96,24 @@ def detect(ctx: VideoContext, cfg: dict) -> list[Event]:
         foot = ctx.foot_px(g)
         pedestrian = np.array([(f, int(track_id)) not in excluded for f in g["frame"].to_numpy()])
         # A box cut by the frame border has no visible feet, so its bottom edge is not a foot point.
-        edge = cfg.get("frame_edge_px", 4)
-        pedestrian &= ((g["y2"] < ctx.height - edge) & (g["x1"] > edge) & (g["x2"] < ctx.width - edge)).to_numpy()
-        # "On the crossing edge" is about a metre whatever the depth: scale the margin by body height.
-        margin = np.maximum(cfg["crosswalk_margin_px"], cfg.get("margin_box_h", 0.0) * (g["y2"] - g["y1"]).to_numpy())
-        on_road = ctx.scene.on_carriageway(foot) & ~near_safe_area(ctx, foot, margin) & pedestrian
-        # Two thresholds: the margin confirms an event robustly; the exact geometry sets its boundaries
-        # (step onto the road / reach a crossing, refuge or curb), as the annotation convention requires.
-        strict = ctx.scene.on_carriageway(foot) & ~near_safe_area(ctx, foot, 0.0) & pedestrian
-        for _, _, i0, i1 in condition_segments(t, on_road, cfg["min_on_road_s"], cfg["max_gap_s"],
-                                               ctx.step_s):
-            while i0 > 0 and strict[i0 - 1]:
-                i0 -= 1
-            while i1 + 1 < len(t) and strict[i1 + 1]:
-                i1 += 1
+        border = cfg.get("frame_edge_px", 4)
+        pedestrian &= ((g["y2"] < ctx.height - border) & (g["x1"] > border)
+                       & (g["x2"] < ctx.width - border)).to_numpy()
+        box_h = (g["y2"] - g["y1"]).to_numpy()
+        on_carriageway = ctx.scene.on_carriageway(foot) & pedestrian
+        # Two thresholds. The wide margin (~1 m, scaled by body height) confirms an event robustly; the
+        # small one (~25 cm) sets its boundaries: stepping onto the road, reaching a crossing, refuge or
+        # curb. Zero would let box jitter along a crossing edge drag the start back by seconds.
+        margin = np.maximum(cfg["crosswalk_margin_px"], cfg.get("margin_box_h", 0.0) * box_h)
+        confirmed = on_carriageway & ~near_safe_area(ctx, foot, margin)
+        boundary = np.maximum(cfg.get("boundary_px", 0.0), cfg.get("boundary_box_h", 0.0) * box_h)
+        on_road = on_carriageway & ~near_safe_area(ctx, foot, boundary)
+        runs = condition_segments(t, confirmed, cfg["min_on_road_s"], cfg["max_gap_s"], ctx.step_s)
+        segments = _bridge_walk_through(condition_segments(t, on_road, 0.0, cfg["max_gap_s"], ctx.step_s),
+                                        t, g["stationary_s"].to_numpy(), cfg)
+        for i0, i1 in segments:
+            if not any(r0 <= i1 and r1 >= i0 for _, _, r0, r1 in runs):
+                continue
             start = float(t[i0])
             end = min(float(t[i1 + 1]) if i1 + 1 < len(t) else float(t[i1]) + ctx.step_s, ctx.duration)
             speed = float(np.median(g["speed_rel"].to_numpy()[i0:i1 + 1]))

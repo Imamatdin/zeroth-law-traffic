@@ -32,8 +32,11 @@ jaywalking:
   enabled: false
   min_on_road_s: 1.0          # persistence before a pedestrian counts as on the carriageway
   max_gap_s: 0.5              # hysteresis: brief off-road blips do not end the event
+  walk_through_gap_s: 2.5     # a refuge/crossing contact (sample gap incl. margins) up to this long ...
+  walk_through_max_still_s: 1.0    # ... if the pedestrian never stands still that long during it
   crosswalk_margin_px: 20     # foot points this close to a crossing or refuge count as on it
   margin_box_h: 0.5           # ... or within half the person's box height (~1 m), whichever is larger
+  boundary_box_h: 0.15        # start/end are set where the foot is ~25 cm off a crossing, refuge or curb
   rider_overlap: 0.5          # person boxes overlapping a bicycle/motorcycle this much are riders
   max_walk_speed_rel: 2.5     # body heights/s; faster runs are riders or misdetections
   frame_edge_px: 4            # boxes touching the frame border have no foot point

@@ -7,18 +7,14 @@
   "method": "Candidates from YOLO11m+ByteTrack tracks and configs/camera.yaml, then exact-frame review sheets (scripts/render_review.py). Only windows listed under reviewed_windows were checked; absence elsewhere is not a negative label.",
   "events": [
     {
-      "start": 11.7,
-      "end": 20.3,
+      "start": 11.8,
+      "end": 20.7,
       "label": "jaywalking",
       "who": "track 18, man in dark clothes",
-      "note": "On near crossing at 11.41 s, off it and on carriageway by 12.01 s; walks diagonally across the junction past refuge_upper to refuge_lower. Start between 11.41 and 12.01 (0.3 s sampling)."
+      "note": "Full-frame-rate check (2026-09-26): feet on the stripe ends of cross_near until 11.71 s, on asphalt by 11.91 s; walks diagonally across the junction, clipping refuge_upper's tip ~16.7-18.3 s without stopping; front foot onto refuge_lower's curb at 20.62 s, both feet on it by 20.82 s. Earlier estimate 11.7-20.3 superseded."
     }
   ],
   "uncertain": [
-    {
-      "t": 20.3,
-      "question": "Track 18 end: does he stand on the road beside refuge_lower until ~31 s (tracker says off-island 22.0-31.1 s) or on the island?"
-    },
     {
       "t": 33.7,
       "question": "Vehicle crosses near_stop during red+amber (green at 34.53 s). red_light or anticipatory start that annotators ignore?"
@@ -62,6 +58,10 @@
     {
       "t": 35.0,
       "question": "Pedestrian 518 still on cross_near at 35-37 s while near-approach cars start on green: failure_to_yield candidate"
+    },
+    {
+      "t": 17.5,
+      "question": "Track 18 clips refuge_upper's tip for ~1 s mid-crossing: one jaywalking event (engine's choice) or two?"
     }
   ],
   "reviewed_windows": [

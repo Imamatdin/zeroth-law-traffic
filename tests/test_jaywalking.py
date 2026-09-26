@@ -89,6 +89,31 @@ class JaywalkingTests(unittest.TestCase):
         evs = jaywalking.detect(context([walk(1, 0.0, 6.0, (30, 300), (330, 300))], [(0, "red")]), CFG)
         self.assertEqual(len(postprocess(evs, 60, 10)), 1)
 
+    def test_walking_through_a_refuge_tip_keeps_one_event(self):
+        # Road -> across the refuge (450..550 x, 200..260 y) in 2 s without stopping -> road again.
+        cfg = {**CFG, "walk_through_gap_s": 2.5, "walk_through_max_still_s": 1.0}
+        path = walk(1, 0.0, 12.0, (130, 230), (850, 230))
+        (ev,) = jaywalking.detect(context([path], [(0, "red")]), cfg)
+        self.assertAlmostEqual(ev.start, 0.0, places=6)
+        self.assertAlmostEqual(ev.end, 12.0, delta=0.11)
+
+    def test_stopping_on_a_refuge_ends_the_event(self):
+        cfg = {**CFG, "walk_through_gap_s": 2.5, "walk_through_max_still_s": 1.0}
+        t1 = walk(1, 0.0, 4.0, (130, 230), (490, 230))
+        wait = walk(1, 4.1, 5.9, (490, 230), (490, 230))          # stands on the refuge ~2 s
+        t2 = walk(1, 6.0, 10.0, (490, 230), (850, 230))
+        evs = jaywalking.detect(context([pd.concat([t1, wait, t2])], [(0, "red")]), cfg)
+        self.assertEqual(len(evs), 2)
+
+    def test_edge_jitter_does_not_drag_the_start_back(self):
+        # Walks along the crossing's top edge (y = 510) with feet jittering 5 px outside it, then
+        # leaves it at t = 6 s. With a 10 px boundary margin the start is the real departure.
+        cfg = {**CFG, "boundary_px": 10.0}
+        along = walk(1, 0.0, 6.0, (150, 505), (450, 505))
+        away = walk(1, 6.1, 12.0, (455, 500), (455, 250))
+        (ev,) = jaywalking.detect(context([pd.concat([along, away])], [(0, "red")]), cfg)
+        self.assertGreater(ev.start, 5.9)
+
 
 if __name__ == "__main__":
     unittest.main()
