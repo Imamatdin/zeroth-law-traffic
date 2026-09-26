@@ -8,7 +8,6 @@ import pandas as pd
 
 from src.contracts import Event
 from src.events.base import PERSON, VideoContext, condition_segments
-from src.scene.geometry import point_in_polygon
 
 LABEL = "jaywalking"
 TWO_WHEELERS = (1, 2)
@@ -57,16 +56,7 @@ def non_pedestrian_person_rows(samples: pd.DataFrame, rider_overlap: float) -> s
 
 
 def near_safe_area(ctx: VideoContext, foot: np.ndarray, margin) -> np.ndarray:
-    """On, or within `margin` px (scalar or per point) of, a crossing, refuge, sidewalk, the median
-    or the curb (the edge of the road polygon)."""
-    m = np.broadcast_to(np.asarray(margin, float), (len(foot),))[:, None]
-    safe = np.zeros(len(foot), bool)
-    for ox, oy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
-        p = foot + m * np.array([ox, oy], float)
-        safe |= ~point_in_polygon(p, ctx.scene.road)
-        for kind in SAFE_KINDS:
-            safe |= ctx.scene.in_kind(p, kind)
-    return safe
+    return ctx.scene.near_safe_area(foot, margin, SAFE_KINDS)
 
 
 def _bridge_walk_through(segments, t: np.ndarray, stationary_s: np.ndarray, cfg: dict) -> list[tuple[int, int]]:

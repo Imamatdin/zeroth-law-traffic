@@ -61,8 +61,10 @@ islands:
 crosswalks:
   # Upper edge widened ~0.01: people walk along the stripe edge (review of tracks 12, 16).
   - {id: cross_near, polygon: [[0.1484, 0.5644], [0.52, 0.466], [0.62, 0.478], [0.62, 0.512], [0.1859, 0.625]]}
-  # Upper edge from the pedestrian path bundle (median nose to the right sidewalk).
-  - {id: cross_far, polygon: [[0.645, 0.478], [0.8727, 0.3958], [0.95, 0.415], [0.965, 0.455], [0.68, 0.525]]}
+  # Upper edge from the pedestrian path bundle; extended left to the median tip, where the zebra
+  # continues past the median (a waiting pedestrian stood in the old gap, 102-104 s).
+  - {id: cross_far, polygon: [[0.620, 0.478], [0.645, 0.478], [0.8727, 0.3958], [0.95, 0.415], [0.965, 0.455],
+                              [0.68, 0.525], [0.66, 0.502], [0.620, 0.503]]}
   # Zebra band traced along the stripe ends on a gridded frame-0 zoom (left and right edges).
   - {id: cross_foreground, polygon: [[0.150, 0.688], [0.178, 0.688], [0.254, 0.756], [0.290, 0.780], [0.318, 0.800],
                                      [0.348, 0.832], [0.390, 0.872], [0.407, 0.900], [0.430, 0.955], [0.450, 1.0],

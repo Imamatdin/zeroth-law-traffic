@@ -104,6 +104,21 @@ class Scene:
             hit |= point_in_polygon(points, region.polygon)
         return hit
 
+    def near_safe_area(self, points: np.ndarray, margin,
+                       kinds=("crosswalks", "islands", "sidewalks", "median")) -> np.ndarray:
+        """On, or within `margin` px (scalar or per point) of, a region of `kinds` or the curb
+        (the edge of the road polygon)."""
+        points = np.atleast_2d(np.asarray(points, float))
+        m = np.broadcast_to(np.asarray(margin, float), (len(points),))[:, None]
+        safe = np.zeros(len(points), bool)
+        for ox, oy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
+            p = points + m * np.array([ox, oy], float)
+            if self.road is not None:
+                safe |= ~point_in_polygon(p, self.road)
+            for kind in kinds:
+                safe |= self.in_kind(p, kind)
+        return safe
+
     def on_carriageway(self, points: np.ndarray) -> np.ndarray:
         """Inside the road polygon and not on a sidewalk, island or median."""
         points = np.atleast_2d(points)
