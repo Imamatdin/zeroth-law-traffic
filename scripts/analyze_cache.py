@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.atlas.flow import build_atlas
 from src.features.interactions import pair_features
+from src.features.stitching import prepare_tracks
 from src.features.tracks import compute_world
 from src.perception.cache import read_meta
 
@@ -59,14 +60,22 @@ def main():
     p.add_argument("--atlas", type=Path, required=True)
     p.add_argument("--figures", type=Path, required=True)
     p.add_argument("--ref-frame", type=int, default=0)
+    p.add_argument("--no-stitch", action="store_true", help="build the world model from raw tracks")
     a = p.parse_args()
 
     meta = read_meta(a.cache)
     W, H = meta["width"], meta["height"]
     tracks = pd.read_parquet(a.cache / "tracks.parquet")
+    source = "tracks.parquet"
+    if not a.no_stitch:
+        tracks, stitch_info = prepare_tracks(tracks, W, H)
+        tracks.to_parquet(a.cache / "tracks_stitched.parquet", index=False)
+        (a.cache / "stitch_info.json").write_text(json.dumps(stitch_info, indent=1) + "\n", encoding="utf-8")
+        source = "tracks_stitched.parquet"
     world = compute_world(tracks, W, H, mode="centered")
     pairs = pair_features(world, W, H)
     world.to_parquet(a.cache / "world.parquet", index=False)
+    (a.cache / "world_meta.json").write_text(json.dumps({"tracks_source": source}) + "\n", encoding="utf-8")
     pairs.to_parquet(a.cache / "pairs.parquet", index=False)
     atlas = build_atlas(world, pairs)
     atlas["source"] = {"video": meta["video_id"], "cache_request": meta["request"]["pipeline"]["config"],

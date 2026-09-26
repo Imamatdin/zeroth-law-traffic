@@ -101,7 +101,10 @@ class VideoContext:
 
         meta = json.loads((cache / "meta.json").read_text(encoding="utf-8"))
         world = pd.read_parquet(cache / "world.parquet")
-        boxes = pd.read_parquet(cache / "tracks.parquet", columns=["frame", "track_id", "x1", "y1", "x2", "y2"])
+        world_meta = cache / "world_meta.json"
+        source = (json.loads(world_meta.read_text(encoding="utf-8"))["tracks_source"] if world_meta.exists()
+                  else "tracks.parquet")
+        boxes = pd.read_parquet(cache / source, columns=["frame", "track_id", "x1", "y1", "x2", "y2"])
         samples = world.merge(boxes, on=["frame", "track_id"], how="left", validate="one_to_one")
         scene = Scene.load(camera, meta["width"], meta["height"])
         signals = {}
