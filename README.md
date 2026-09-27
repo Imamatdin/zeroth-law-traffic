@@ -1,52 +1,94 @@
 # Zeroth Law Traffic
 
-Traffic event detection and causal accident anticipation for the WIUT Hackathon 2026 Computer Vision track.
+Traffic events (Part A) and causal accident anticipation (Part B) for the WIUT Hackathon 2026 CV track. The [organizer specification](docs/task_spec.md) is authoritative.
 
-## Current status
+**Status:** all event engines remain disabled in `configs/events.yaml` pending labelled validation, so Part A currently emits no events. Part B produces analytic risk. Accuracy on real accidents and T4 runtime compliance remain unverified. Final sample predictions must be generated from the final tag on a GPU machine.
 
-The official starter kit remains unchanged. `solution.py` runs local YOLO11m perception, ByteTrack, an optional Part A stitching hook, the world model, and the enabled event engines with segment postprocessing. The checked-in event configuration currently disables every engine. Part B runs its own detector and tracker and feeds a causal interaction-risk model (`src/anticipation/risk.py`) with its own tracks and the signal read from each frame; it never uses Part A output. No detection accuracy or anticipation performance is claimed.
+## Install and official commands
 
-Development infrastructure includes typed data contracts, a detector/tracker cache interface, an evaluator for saved predictions, exact-frame review sheets, and geometry-overlay tooling. Camera verification and dev-label adjudication are in progress. No detection accuracy or anticipation performance is claimed yet.
-
-## Install and run
-
-Python 3.11 is the tested development version. Install the pinned dependencies, then place the provided YOLO11m checkpoint at `weights/yolo11m.pt` before importing the solution. Model loading never downloads weights. Its SHA256 must be `d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95`. The submission archive must include this file; it is not stored in Git.
+Target: Linux x86_64, Python 3.11, single T4, 8 CPU cores, 32 GB RAM. Install Bash, curl and sha256sum. Internet is required during installation and weight retrieval; inference uses local files only.
 
 ```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -c "from pathlib import Path; Path('outputs').mkdir(exist_ok=True)"
-python run_submission.py --videos data/samples --out outputs/predictions.json --team zeroth-law
-python evaluate.py --pred outputs/predictions.json --validate-only
+bash weights/download.sh
+export CUDA_VISIBLE_DEVICES=0 PYTHONHASHSEED=0
+python run_submission.py --videos /data/test --out predictions.json --team zeroth-law
+python evaluate.py --pred predictions.json --validate-only
 ```
 
-Videos, weights, caches and generated outputs are excluded from Git. `imageio-ffmpeg` supplies the CPU FFmpeg binary through its platform wheel; OpenCV is the fallback. `run_submission.py` and `evaluate.py` must remain byte-identical to the organizer kit. See `docs/runtime_integration.md` for budget assumptions, preprocessing differences, validation and remaining judge-machine checks.
+For a fully resolved Linux/Python 3.11 environment, replace the pip line with `python -m pip install --require-hashes -r requirements-linux-cu126.lock`. Torch 2.10.0+cu126 and torchvision 0.25.0+cu126 target CUDA 12.6; headless Ultralytics is 8.4.163. See [driver limits](docs/linux_cuda_install.md). CPU FP32 is supported but is not promised to meet the 3x budget.
 
-For development tools and checks:
+To score annotated footage: `python evaluate.py --pred predictions.json --gt /path/to/ground_truth.json`. Organizer examples are format fixtures, not sample-video labels. Official files are unchanged. Format validation can pass after a timed-out harness run; also use `python scripts/check_harness_output.py --pred predictions.json --videos /data/test` to reject errors and incomplete risk output.
 
-```bash
-python -m pip install -r requirements-dev.txt
-python -m unittest discover -s tests -v
-```
+## Weights
 
-See `scripts/README.md` for review, cache and evaluation commands. `--pred` in the dev evaluator scores an existing file without rerunning inference; `--videos` explicitly runs the official harness. Organizer example files are test fixtures, not labels for the sample videos.
-
-## Architecture
+Only `weights/yolo11m.pt` is shipped: **40,684,120 bytes**, below 5 GB. This is the Ultralytics COCO-pretrained YOLO11m, with no team fine-tuning. SHA256:
 
 ```text
-video -> detections -> tracks -> scene state -> event engines
-      -> rich evidence -> segment postprocessing -> official predictions
-
-streamed past/current frames -> independent causal state -> risk(t)
+d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95
 ```
 
-The proposed system combines scene rules, trajectory/interaction features, and a flow atlas of normal traffic. These model components are planned, not implemented performance claims. Observed movement frequency does not establish legal permission.
+[weights-v1 release location](https://github.com/Imamatdin/zeroth-law-traffic/releases/tag/weights-v1). **Upload pending:** `gh` is unavailable here; [exact publication steps](docs/weights_release.md) are included. Until published, fresh downloads fail clearly. `download.sh` uses curl, verifies SHA256 before atomic installation, and skips an already verified file. No inference-time downloads. RT-DETR-L is an unused local challenger and is not shipped. Camera and atlas JSON files are tracked configuration/prior data, not extra neural checkpoints.
 
-The harness runs Part A before Part B and applies one shared per-video time budget. Part B never reads the video file, future frames, or Part A output. Model weights may be shared for inference; trackers and other temporal state must remain independent.
+## Approach
 
-The organizer rules are in `docs/task_spec.md`; module and data contracts are in `docs/ARCHITECTURE.md`; teammate deliverables are specified in `docs/TEAM_BRIEF.md`.
+```text
+A: CPU decode/sample -> YOLO11m -> ByteTrack -> rider fusion/stitching
+   -> scene geometry + kinematics + atlas -> enabled event rules
+   -> segment merging/clamping -> official events
+B: current harness frame -> independent detector/tracker
+   -> causal class vote + rider exclusion + signal hold
+   -> conflict features -> analytic risk -> smoother/calibrator
+```
 
-## Team workflow
+- **Learned:** COCO-pretrained YOLO11m, selecting person, bicycle, motorcycle, car, bus and truck. No team-trained detector or accident network.
+- **Tracking:** Ultralytics ByteTrack association and Kalman filtering; inference-frame updates, stride-adjusted buffer, independent A/B IDs/state.
+- **Rules:** manual camera geometry, signal lamp colours, trajectory features, event state machines and segment postprocessing. The sample-fitted flow atlas is an empirical prior, not proof of legal movement.
+- **Risk:** closest approach, closing speed, braking, red-light/wrong-way modifiers; rider duplicates excluded. Class votes use history so far; unknown signals hold the last known state for at most one second. Calibration is configured using synthetic scenarios, not fitted to labelled real accidents. B never reads a video, future frames or A outputs.
+- **Decode:** bundled imageio-ffmpeg uses CPU decode, selects every third source frame and scales A to width 1920 before 960-input inference. Native indices/timestamps/coordinates are restored. OpenCV is the CPU fallback. The samples' H.264 10-bit 4:2:2 is not decoded on T4 hardware.
 
-Iko owns the main workflow, architecture, integration, website and submission. Jalol and Javohir contribute through the separate lanes defined in the team brief; these responsibilities are assignments, not claims of completed contributions. Use short branches and keep `main` runnable. Teammate work stays under `contrib/<name>/` on `team/<name>` until integrated.
+See [architecture](docs/ARCHITECTURE.md), [runtime details](docs/runtime_integration.md), [data](DATASETS.md), and [licences](LICENSES.md). No custom neural training was performed; no custom training recipe is claimed.
 
-Before submission, add the selected model and dataset licences, training/inference settings and seeds, weights with checksums, measured runtime, reproducibility evidence, team contributions, and final `predictions_samples.json`. The website and final submission package remain pending.
+## Seeds and nondeterminism
+
+The registry seeds Python, NumPy and PyTorch to **0** before model construction, disables cuDNN benchmarking, enables deterministic cuDNN and requests deterministic PyTorch algorithms with warnings for unsupported operations. Scripts set `PYTHONHASHSEED=0`; CUBLAS workspace configuration defaults to `:4096:8`.
+
+Unsupported CUDA operations, hardware/library changes, FP16 rounding and equal-score NMS may vary. The wall-clock runtime guard can select different strides (3 through 15) under different loads, changing predictions even with fixed seeds. Final same-machine reproducibility needs the T4 run. Official JSON contains variable timing logs; compare prediction payloads separately without changing the submitted harness output.
+
+## Runtime evidence
+
+| Evidence | Hardware/revision | Status |
+|---|---|---|
+| C3905: 768.1 / 827.2 s for 127.6275 s video, 6.02x / 6.48x | CPU laptop, eng/integration before current risk fixes | Measured historical functional runs with relaxed time limit; not a 3x pass |
+| 20.05 s clip: 187.1 s, about 9.33x | CPU laptop, integration-1 handoff | Historical measured smoke; guard reached stride 15 |
+| A 1.25x + B 1.55x + margin 0.20x | Current guard configuration | Budget allocation, not measured throughput |
+| Current full pipeline on one T4 | Judge target | UNMEASURED |
+
+Laptop RAM is 7.7 GB with heavy paging; local timing is indicative only. Judges allow A+B together 3x duration. Import/warm-up is outside their per-video timer. Run `python scripts/t4_end_to_end.py --videos /path/to/short-clips --out outputs/t4-final` and inspect guard stride/ratios. Detector-only FPS does not establish this gate. Never relax the time factor for acceptance.
+
+## Packaging and final predictions
+
+```bash
+# Linux, fresh venv, install, download, first 20 seconds, official 3x budget:
+bash scripts/clean_install_test.sh /path/to/C3905.MP4
+# Checkout FINAL_TAG first, on the GPU machine with all samples:
+bash scripts/make_predictions_samples.sh FINAL_TAG /path/to/all-samples
+```
+
+Sample generation requires C3896.MP4, C3897.MP4 and C3905.MP4, includes additional videos in that folder, validates and rejects harness errors before writing `predictions_samples.json`. It refuses to overwrite existing predictions. Publish that generated JSON with the final tag; it is not generated by this packaging task. Fresh Linux/CUDA acceptance remains unrun here. Clean-install logs and environment versions stay in `outputs-clean-install.*`.
+
+Development: `python -m pip install -r requirements-dev.txt`, then `python -B -m unittest discover -s tests -v`.
+
+## Team
+
+No `contrib/*/bio.md` files exist in this revision. These are assignments from the team brief, not claims that every deliverable is complete.
+
+| Member | Responsibility | Confirmed profile/contribution |
+|---|---|---|
+| Iko | Architecture, integration, event/risk pipeline, submission, website coordination | TODO: full name, links, confirmed contribution summary |
+| Jalol | Detector/tracker evaluation and hazard lane | TODO: bio, links, delivered work |
+| Javohir | Scene/signal and near-miss lane | TODO: bio, links, delivered work |
+
+See [team brief](docs/TEAM_BRIEF.md). AI tools assisted development; no hosted inference API is used. Website/report links: **TODO: verified public URLs**.
