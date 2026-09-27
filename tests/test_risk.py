@@ -50,6 +50,18 @@ class RiskModelTests(unittest.TestCase):
             self.assertGreaterEqual(lead, 2.5, v)
             self.assertLessEqual(lead, 5.0, v)
 
+    def test_collision_course_still_alerts_when_the_guard_widens_the_stride(self):
+        # Stride 15 at 29.97 fps: one update every 0.5 s.
+        from risk_fixtures import scene
+        a, b = crossing_course(150.0)
+        model = RiskModel(scene())
+        model.reset({})
+        times = np.round(np.arange(0.0, 10.0, 0.5), 3)
+        risks = [model.update([s for s in (a(t), b(t)) if s is not None], float(t)) for t in times]
+        first = times[int(np.argmax(np.array(risks) >= 0.5))]
+        self.assertGreater(max(risks), 0.5)
+        self.assertGreaterEqual(contact_time(150.0) - first, 2.0)
+
     def test_normal_signalised_crossing_traffic_stays_low(self):
         # Near approach (down) is red: cars brake to a stop before the line (y=1000); cross traffic
         # flows left-right through the junction below it on green.

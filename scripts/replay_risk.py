@@ -35,12 +35,13 @@ def main():
     p.add_argument("--camera", type=Path, default=ROOT / "configs" / "camera.yaml")
     p.add_argument("--atlas", type=Path, default=ROOT / "configs" / "atlas.json")
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--every", type=int, default=1, help="use every N-th cached frame (emulates a wider stride)")
     a = p.parse_args()
     meta = json.loads((a.cache / "meta.json").read_text(encoding="utf-8"))
     model = RiskModel.from_files(a.camera, meta["width"], meta["height"], a.atlas)
     model.reset({k: meta[k] for k in ("video_id", "fps", "width", "height", "n_frames")})
     tracks = pd.read_parquet(a.cache / "tracks.parquet")
-    frames = pd.read_parquet(a.cache / "frames.parquet")
+    frames = pd.read_parquet(a.cache / "frames.parquet").iloc[::a.every]
     series = a.cache / "signal_series.parquet"
     signals = pd.read_parquet(series) if series.exists() else None
     by_frame = dict(tuple(tracks.groupby("frame")))

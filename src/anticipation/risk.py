@@ -37,6 +37,7 @@ TWO_WHEELERS = frozenset((1, 2))
 class RiskConfig:
     history_s: float = 2.0
     vel_window_s: float = 0.6
+    min_fit_samples: int = 3          # velocity/acceleration fits never use fewer samples than this
     min_age_s: float = 0.5
     border_px: float = 8.0
     stale_s: float = 1.0
@@ -164,13 +165,18 @@ class RiskModel:
             st.samples.append((t, fx, fy, y2 - y1, x1, y1, x2, y2))
             st.cls_hist.append(tr.cls)
             st.last_t = t
-            while st.samples and st.samples[0][0] < t - c.history_s:
+            while len(st.samples) > c.min_fit_samples and st.samples[0][0] < t - c.history_s:
                 st.samples.popleft()
                 st.cls_hist.popleft()
-            win = np.array([s for s in st.samples if s[0] >= t - c.vel_window_s])
-            v = _ls_slope(win[:, 0], win[:, 1:3]) if len(win) >= 3 else np.zeros(2)
+            # The window always holds at least min_fit_samples: when the runtime guard widens the stride
+            # (0.5 s between updates at stride 15), a fixed 0.6 s window would read every track as still.
+            recent = [s for s in st.samples if s[0] >= t - c.vel_window_s]
+            if len(recent) < c.min_fit_samples:
+                recent = list(st.samples)[-c.min_fit_samples:]
+            win = np.array(recent)
+            v = _ls_slope(win[:, 0], win[:, 1:3]) if len(win) >= c.min_fit_samples else np.zeros(2)
             st.vels.append((t, float(v[0]), float(v[1])))
-            while st.vels and st.vels[0][0] < t - c.vel_window_s:
+            while len(st.vels) > c.min_fit_samples and st.vels[0][0] < t - c.vel_window_s:
                 st.vels.popleft()
         for tid in [k for k, s in self.tracks.items() if t - s.last_t > c.stale_s]:
             del self.tracks[tid]
