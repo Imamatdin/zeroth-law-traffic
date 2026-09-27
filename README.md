@@ -2,9 +2,9 @@
 
 Traffic events (Part A) and causal accident anticipation (Part B) for the WIUT Hackathon 2026 CV track. The [organizer specification](docs/task_spec.md) is authoritative.
 
-**Website:** https://zeroth-law-traffic.vercel.app · **Weights:** [weights-v1 release](https://github.com/Imamatdin/zeroth-law-traffic/releases/tag/weights-v1) · **Licence:** [AGPL-3.0](LICENSE)
+**Website:** https://zeroth-law-traffic.vercel.app Â· **Weights:** [weights-v1 release](https://github.com/Imamatdin/zeroth-law-traffic/releases/tag/weights-v1) Â· **Licence:** [AGPL-3.0](LICENSE)
 
-**Status:** event classes are enabled per class in `configs/events.yaml` after manual review of their detections on the sample videos; `accident` stays disabled. Part B produces analytic risk. Accuracy on real accidents is unverified. The full pipeline fits the 3x budget on an 8-core GPU pod; on a Colab T4 it went over budget before the decode fix, and the rerun after the fix is pending (see [Runtime evidence](#runtime-evidence)). Final sample predictions must be generated from the final tag on a GPU machine.
+**Status:** Part A enables seven classes in `configs/events.yaml`: jaywalking, failure_to_yield, red_light, stop_line, stopped_vehicle, wrong_way and near_miss. All 16 non-accident detections they and solid_line_crossing produced on C3905 were confirmed correct by human review. Off: accident, solid_line_crossing (its only C3905 detection is a 0.1 s segment that cannot match the official boundaries), congestion, illegal_turn, illegal_u_turn, road_obstacle and fire_smoke. This validation covers one sample video, not general accuracy. Part B produces analytic risk. Accuracy on real accidents is unverified. The full pipeline fits the 3x budget on an 8-core GPU pod; on a Colab T4 it went over budget before the decode fix, and the rerun after the fix is pending (see [Runtime evidence](#runtime-evidence)). Final sample predictions must be generated from the final tag on a GPU machine.
 
 ## Install and official commands
 
@@ -68,7 +68,7 @@ Official harness, unchanged, on C3905 (127.63 s, 4K 10-bit 4:2:2), 3x budget 382
 | All event classes off | GPU pod (RTX PRO 4500 Blackwell), `taskset` to 8 cores | 53.1 s | 67.6 s | 120.8 s | 0.95x | Within budget, format valid |
 | Non-visual classes on (incl. accident) | Same pod, 8 cores | 102.4 s | 67.2 s | 169.5 s | 1.33x | Within budget, format valid |
 | Before the decode fix (FFmpeg pipe in Part A) | Colab T4 | 349.5 s | 44.2 s | 393.7 s | 3.08x | **Over budget**: scored as empty |
-| After the decode fix (OpenCV in Part A) | Colab T4 | – | – | – | – | Pending |
+| After the decode fix (OpenCV in Part A) | Colab T4 | â€“ | â€“ | â€“ | â€“ | Pending |
 
 The T4 failure came from Part A's FFmpeg decode: the harness's own OpenCV decode of every 4K frame in Part B took under 44.2 s. Part A now decodes with OpenCV exactly as the cache builder does; `ZLT_DECODE=ffmpeg` restores the old path. The pod is not the judges' T4, so its ratios show headroom, not compliance. Budget split: A 1.25x, B 1.55x, 0.20x margin; the guard widens inference stride (3 to 15) when a part runs slow. Import/warm-up is outside the per-video timer. Reproduce with `python scripts/t4_end_to_end.py --videos /path/to/videos --out outputs/t4-final`; never relax the time factor for acceptance.
 
@@ -90,7 +90,7 @@ Development: `python -m pip install -r requirements-dev.txt`, then `python -B -m
 | Member | GitHub | Contribution |
 |---|---|---|
 | Iko | [@Imamatdin](https://github.com/Imamatdin) | Architecture, Part A/B pipeline, integration, website |
-| Jalol | – | Perception caches, T4 testing, labels |
-| Javohir | – | Labels |
+| Jalol | â€“ | Perception caches, T4 testing, labels |
+| Javohir | â€“ | Labels |
 
 See [team brief](docs/TEAM_BRIEF.md). AI tools assisted development; no hosted inference API is used. Website: https://zeroth-law-traffic.vercel.app

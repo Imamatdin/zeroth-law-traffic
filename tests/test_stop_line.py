@@ -27,6 +27,11 @@ class StopLineTests(unittest.TestCase):
         self.assertLessEqual(ev.start, 2.6)
         self.assertEqual(ev.evidence["on_crosswalk_fraction"], 1.0)
 
+    def test_scene_without_the_stop_line_does_not_fire(self):
+        ctx = context([approach_and_stop(1, 540)], [(0, "red")])
+        self.assertEqual(len(stop_line.detect(ctx, CFG)), 1)
+        self.assertEqual(stop_line.detect(ctx, {**CFG, "stop_line": "absent"}), [])
+
     def test_stopping_before_the_line_does_not_fire(self):
         ctx = context([approach_and_stop(1, 495)], [(0, "red"), (15.0, "green")])
         self.assertEqual(stop_line.detect(ctx, CFG), [])

@@ -14,6 +14,8 @@ LABEL = "stop_line"
 
 def detect(ctx: VideoContext, cfg: dict) -> list[Event]:
     line_id = cfg["stop_line"]
+    if line_id not in ctx.scene.stop_lines:
+        return []
     a, b = ctx.scene.stop_lines[line_id]
     signal_id = ctx.scene.stop_line_meta[line_id]["signal"]
     if signal_id not in ctx.signals:

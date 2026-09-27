@@ -25,6 +25,11 @@ class RedLightTests(unittest.TestCase):
         self.assertEqual(ev.track_ids, (1,))
         self.assertEqual(ev.evidence["signal_state"], "red")
 
+    def test_scene_without_the_stop_line_does_not_fire(self):
+        ctx = context([drive(1, 10.0)], [(0, "red")])
+        self.assertEqual(len(red_light.detect(ctx, CFG)), 1)
+        self.assertEqual(red_light.detect(ctx, {**CFG, "stop_line": "absent"}), [])
+
     def test_crossing_on_green_or_yellow_does_not_fire(self):
         for state in ("green", "yellow"):
             ctx = context([drive(1, 10.0)], [(0, state)])
