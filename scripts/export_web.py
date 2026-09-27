@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.contracts import OBJECT_CLASSES
+from src.events.base import VideoContext, along_segment, front_point, heading_alignment, signed_line_distance
 from src.scene.signal import smooth_states
 
 VEHICLES = (1, 2, 3, 4, 5)
@@ -46,9 +47,13 @@ def dump(path: Path, obj) -> int:
 
 
 def git_head(root: Path) -> str | None:
+    """Commit of the code that produced the replays (this checkout), with -dirty for uncommitted changes."""
     try:
-        return subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True,
+        head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True,
                               check=True).stdout.strip()
+        dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--", "src", "configs", "scripts"],
+                               capture_output=True, text=True, check=True).stdout.strip()
+        return head + ("-dirty" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
         return None
 
@@ -190,7 +195,33 @@ def export_events(ev_rec: dict, events_cfg: dict, classes: list[str]):
     }
 
 
-def export_signal(cache: Path, meta: dict):
+def stop_line_crossings(ctx: VideoContext, cfg: dict) -> list[dict]:
+    """Every vehicle crossing of the red-light engine's stop line, whatever the signal showed: the same
+    geometry tests as src/events/red_light.detect (lateral extent, heading alignment, jitter guard) without
+    the red filter."""
+    a, b = ctx.scene.stop_lines[cfg["stop_line"]]
+    direction = ctx.approach_direction(cfg["approach"])
+    veh = ctx.samples[ctx.samples["cls_major"].isin(cfg["vehicle_classes"])]
+    out = []
+    for track_id, g in veh.sort_values(["track_id", "t"]).groupby("track_id", sort=True):
+        t = g["t"].to_numpy(float)
+        fp = front_point(g["x1"].to_numpy(), g["y1"].to_numpy(), g["x2"].to_numpy(), g["y2"].to_numpy(), direction)
+        dist = signed_line_distance(fp, a, b, direction)
+        lateral = along_segment(fp, a, b, cfg["max_lateral_margin"])
+        v = ctx.pixel_velocity(g)
+        align = heading_alignment(v[:, 0], v[:, 1], direction)
+        for k in np.where((dist[:-1] < 0) & (dist[1:] >= 0))[0] + 1:
+            if not (lateral[k] or lateral[k - 1]) or max(align[k - 1], align[k]) < cfg["min_alignment"]:
+                continue
+            if dist[k:].max() < cfg["min_past_px"]:
+                continue
+            frac = -dist[k - 1] / (dist[k] - dist[k - 1])
+            out.append({"t": round(float(t[k - 1] + frac * (t[k] - t[k - 1])), 3), "track": int(track_id),
+                        "cls": int(g["cls_major"].iloc[k])})
+    return sorted(out, key=lambda c: c["t"])
+
+
+def export_signal(cache: Path, meta: dict, crossings: list[dict]):
     """Raw per-sample readings (what Part B sees) and the smoothed timeline the Part A engines use.
     `bridged` lists raw gaps the smoothing filled with the surrounding state."""
     s = pd.read_parquet(cache / "signal_series.parquet").sort_values("frame")
@@ -203,11 +234,6 @@ def export_signal(cache: Path, meta: dict):
                                                    t, meta["duration"]) if v == "bridged"]
         out[sid] = {"raw": runs(raw, t, meta["duration"]), "smoothed": runs(smooth, t, meta["duration"]),
                     "bridged": bridged}
-    crossings_path = cache / "near_stop_crossings.csv"
-    crossings = []
-    if crossings_path.exists():
-        c = pd.read_csv(crossings_path)
-        crossings = [{"t": round(float(r.t), 3), "track": int(r.track_id), "cls": int(r.cls)} for r in c.itertuples()]
     return {"signals": out, "near_stop_crossings": crossings,
             "note": "raw: per-frame lamp classifier (unknown = no lamp clearly lit). smoothed: "
                     "src.scene.signal.smooth_states, as used by the Part A engines."}
@@ -388,7 +414,8 @@ def main():
                   "st": "stationary seconds x 10", "k": "index into t"},
         "tracks": tracks,
     })
-    signal = export_signal(cache, meta)
+    ctx = VideoContext.from_cache(cache, rel(src, a.camera), rel(src, a.atlas))
+    signal = export_signal(cache, meta, stop_line_crossings(ctx, events_cfg["red_light"]))
     sizes["signal.json"] = dump(out / "signal.json", signal)
     sizes["field.json"] = dump(out / "field.json", export_field(cache, a.keep_every, 5.0, 3.0, 8.0))
     classes = official_classes(src / "solution.py")
@@ -410,7 +437,7 @@ def main():
     index["videos"] = [v for v in index["videos"] if v["id"] != vid] + [{
         "id": vid, "file": meta["video_id"], "duration": round(meta["duration"], 3), "fps": round(meta["fps"], 3),
         "width": meta["width"], "height": meta["height"], "ref_frame": a.ref_frame,
-        "pipeline_commit": git_head(src), "status": ev_rec["status"],
+        "pipeline_commit": git_head(ROOT), "status": ev_rec["status"],
     }]
     index["videos"].sort(key=lambda v: v["id"])
     dump(index_path, index)
