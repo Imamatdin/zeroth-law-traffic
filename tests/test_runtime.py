@@ -3,12 +3,15 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch, Mock
 import cv2
 import numpy as np
 from src.contracts import Detections
 from src.runtime.budget import BudgetGuard
-from src.runtime.decode import _read_frame, frames, metadata, restore
+from src.perception.detector import UltralyticsDetector
+from src.runtime import decode
+from src.runtime.decode import _read_frame, frames, metadata, prescale, restore
 
 
 class RuntimeTests(unittest.TestCase):
@@ -51,12 +54,32 @@ class RuntimeTests(unittest.TestCase):
                 writer.write(np.full((48, 64, 3), i * 10, np.uint8))
             writer.release()
             meta = metadata(path)
-            a = list(frames(path, meta))
+            a = list(frames(path, meta, backend="ffmpeg"))
             with patch("imageio_ffmpeg.get_ffmpeg_exe", side_effect=RuntimeError("missing binary")):
-                b = list(frames(path, meta))
-            self.assertEqual([i for i, _ in a], [0, 3, 6, 9])
-            self.assertEqual([i for i, _ in b], [0, 3, 6, 9])
+                b = list(frames(path, meta, backend="ffmpeg"))
+            with patch.dict("os.environ", {}, clear=True):
+                c = list(frames(path, meta))
+            for stream in (a, b, c):
+                self.assertEqual([i for i, _ in stream], [0, 3, 6, 9])
             self.assertEqual(a[0][1].shape, (48, 64, 3))
+            self.assertEqual(c[0][1].shape, (48, 64, 3))
+
+    def test_default_backend_is_opencv_and_env_selects_ffmpeg(self):
+        with patch.object(decode, "opencv_frames", return_value=iter([("cv", None)])),                 patch.object(decode, "ffmpeg_frames", return_value=iter([("ff", None)])):
+            with patch.dict("os.environ", {}, clear=True):
+                self.assertEqual(next(frames("v", {}))[0], "cv")
+            with patch.dict("os.environ", {"ZLT_DECODE": "ffmpeg"}):
+                self.assertEqual(next(frames("v", {}))[0], "ff")
+            with patch.dict("os.environ", {"ZLT_DECODE": "gstreamer"}), self.assertRaises(ValueError):
+                next(frames("v", {}))
+
+    def test_opencv_prescale_matches_cache_builder(self):
+        builder = SimpleNamespace(prescale_width=1920)
+        rng = np.random.default_rng(0)
+        for h, w in ((2160, 3840), (1441, 2560), (1080, 1920), (48, 64)):
+            frame = rng.integers(0, 256, (h, w, 3), dtype=np.uint8)
+            expected, _ = UltralyticsDetector._prescale(builder, frame)
+            np.testing.assert_array_equal(prescale(frame), expected)
 
 
 @unittest.skipUnless((Path(__file__).resolve().parents[1] / "weights/yolo11m.pt").is_file(), "local model absent")

@@ -47,7 +47,7 @@ B: current harness frame -> independent detector/tracker
 - **Tracking:** Ultralytics ByteTrack association and Kalman filtering; inference-frame updates, stride-adjusted buffer, independent A/B IDs/state.
 - **Rules:** manual camera geometry, signal lamp colours, trajectory features, event state machines and segment postprocessing. The sample-fitted flow atlas is an empirical prior, not proof of legal movement.
 - **Risk:** closest approach, closing speed, braking, red-light/wrong-way modifiers; rider duplicates excluded. Class votes use history so far; unknown signals hold the last known state for at most one second. Calibration is configured using synthetic scenarios, not fitted to labelled real accidents. B never reads a video, future frames or A outputs.
-- **Decode:** bundled imageio-ffmpeg uses CPU decode, selects every third source frame and scales A to width 1920 before 960-input inference. Native indices/timestamps/coordinates are restored. OpenCV is the CPU fallback. The samples' H.264 10-bit 4:2:2 is not decoded on T4 hardware.
+- **Decode:** Part A decodes on the CPU with OpenCV (grab every frame, retrieve every third, INTER_AREA to width 1920, as the cache builder does) before 960-input inference. Native indices/timestamps/coordinates are restored. `ZLT_DECODE=ffmpeg` selects the bundled imageio-ffmpeg pipe instead. The samples' H.264 10-bit 4:2:2 is not decoded on T4 hardware.
 
 See [architecture](docs/ARCHITECTURE.md), [runtime details](docs/runtime_integration.md), [data](DATASETS.md), and [licences](LICENSES.md). No custom neural training was performed; no custom training recipe is claimed.
 

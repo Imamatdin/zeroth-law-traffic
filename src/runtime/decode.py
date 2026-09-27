@@ -1,4 +1,10 @@
-"""CPU sampled decode, source indices, coordinate restoration and OpenCV fallback."""
+"""CPU sampled decode, source indices and coordinate restoration.
+
+OpenCV is the default backend and mirrors the cache builder (grab every frame, retrieve every third,
+detector prescale), so runtime detections match the caches. ZLT_DECODE=ffmpeg selects the FFmpeg pipe,
+which falls back to OpenCV on failure.
+"""
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -22,6 +28,18 @@ def metadata(path):
         return out
     finally:
         cap.release()
+
+
+PRESCALE_WIDTH = 1920
+DECODE_ENV = "ZLT_DECODE"
+
+
+def prescale(frame):
+    """The cache builder's resize (UltralyticsDetector._prescale), unlike scaled_size's even height."""
+    h, w = frame.shape[:2]
+    if w <= PRESCALE_WIDTH:
+        return frame
+    return cv2.resize(frame, (PRESCALE_WIDTH, round(h * PRESCALE_WIDTH / w)), interpolation=cv2.INTER_AREA)
 
 
 def scaled_size(meta):
@@ -50,10 +68,9 @@ def _read_frame(pipe, size):
 
 def opencv_frames(path, meta, start=0):
     cap = cv2.VideoCapture(str(path))
-    size = scaled_size(meta)
     try:
         if not cap.isOpened():
-            raise OSError(f"OpenCV fallback cannot open {path}")
+            raise OSError(f"OpenCV cannot open {path}")
         for idx in range(meta["n_frames"]):
             if not cap.grab():
                 raise OSError(f"OpenCV ended at frame {idx}/{meta['n_frames']}")
@@ -61,16 +78,23 @@ def opencv_frames(path, meta, start=0):
                 ok, frame = cap.retrieve()
                 if not ok:
                     raise OSError(f"OpenCV retrieve failed at {idx}")
-                yield idx, cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+                yield idx, prescale(frame)
     finally:
         cap.release()
 
 
-def frames(path, meta, *, force_opencv=False):
-    if force_opencv:
+def frames(path, meta, *, backend=None):
+    backend = (backend or os.environ.get(DECODE_ENV) or "opencv").strip().lower()
+    if backend == "opencv":
         log("decode", backend="opencv", cpu=True)
         yield from opencv_frames(path, meta)
-        return
+    elif backend == "ffmpeg":
+        yield from ffmpeg_frames(path, meta)
+    else:
+        raise ValueError(f"{DECODE_ENV}={backend!r}; expected 'opencv' or 'ffmpeg'")
+
+
+def ffmpeg_frames(path, meta):
     next_idx, proc, failure = 0, None, None
     width, height = scaled_size(meta)
     with tempfile.TemporaryFile() as stderr:
