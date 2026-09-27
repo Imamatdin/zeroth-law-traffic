@@ -1,6 +1,6 @@
 # Publish weights-v1
 
-GitHub CLI is unavailable here; the release is NOT yet published. Exact remaining steps:
+Published: https://github.com/Imamatdin/zeroth-law-traffic/releases/tag/weights-v1 (download and SHA256 check verified 2026-09-27). The steps used, kept for re-publication:
 
 1. Open https://github.com/Imamatdin/zeroth-law-traffic/releases/new while signed in.
 2. Create tag **weights-v1**, target the pushed **eng/package** branch; title **weights-v1**.

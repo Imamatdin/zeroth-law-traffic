@@ -1,6 +1,6 @@
 # Licences and attribution
 
-Primary sources checked 2026-09-27. Project original-code licence is **UNDECIDED** pending team confirmation. This inventory does not relicense contributors' work or organizer starter files. Dataset rights are separate.
+Primary sources checked 2026-09-27. The project's original code is licensed under the **GNU AGPL-3.0** ([LICENSE](LICENSE)). This inventory does not relicense contributors' work or organizer starter files. Dataset rights are separate.
 
 | Component | Licence | Primary source / qualification |
 |---|---|---|
@@ -18,4 +18,4 @@ Primary sources checked 2026-09-27. Project original-code licence is **UNDECIDED
 
 The [version-specific publisher metadata inventory](docs/dependency_licenses.md) records all 61 locked dependencies. The hash lock also includes transitive dependencies. Retain their installed .dist-info licence/notice files when distributing an environment. The weights release contains only the checkpoint, checksum and model licence, not a vendored Python/CUDA environment.
 
-Provide corresponding source for AGPL-covered components/modifications, including applicable network-use obligations; preserve upstream notices. Original project licensing still requires team confirmation: public visibility alone is not a licence grant. The organizer starter kit has no separately supplied licence; contest use is described in docs/task_spec.md. Do not label organizer footage or all COCO images freely redistributable.
+Provide corresponding source for AGPL-covered components/modifications, including applicable network-use obligations; preserve upstream notices. The organizer starter kit has no separately supplied licence; contest use is described in docs/task_spec.md. Do not label organizer footage or all COCO images freely redistributable.

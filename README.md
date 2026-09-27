@@ -2,7 +2,9 @@
 
 Traffic events (Part A) and causal accident anticipation (Part B) for the WIUT Hackathon 2026 CV track. The [organizer specification](docs/task_spec.md) is authoritative.
 
-**Status:** all event engines remain disabled in `configs/events.yaml` pending labelled validation, so Part A currently emits no events. Part B produces analytic risk. Accuracy on real accidents and T4 runtime compliance remain unverified. Final sample predictions must be generated from the final tag on a GPU machine.
+**Website:** https://zeroth-law-traffic.vercel.app · **Weights:** [weights-v1 release](https://github.com/Imamatdin/zeroth-law-traffic/releases/tag/weights-v1) · **Licence:** [AGPL-3.0](LICENSE)
+
+**Status:** event classes are enabled per class in `configs/events.yaml` after manual review of their detections on the sample videos; `accident` stays disabled. Part B produces analytic risk. Accuracy on real accidents is unverified. The full pipeline fits the 3x budget on an 8-core GPU pod; on a Colab T4 it went over budget before the decode fix, and the rerun after the fix is pending (see [Runtime evidence](#runtime-evidence)). Final sample predictions must be generated from the final tag on a GPU machine.
 
 ## Install and official commands
 
@@ -30,7 +32,7 @@ Only `weights/yolo11m.pt` is shipped: **40,684,120 bytes**, below 5 GB. This is 
 d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95
 ```
 
-[weights-v1 release location](https://github.com/Imamatdin/zeroth-law-traffic/releases/tag/weights-v1). **Upload pending:** `gh` is unavailable here; [exact publication steps](docs/weights_release.md) are included. Until published, fresh downloads fail clearly. `download.sh` uses curl, verifies SHA256 before atomic installation, and skips an already verified file. No inference-time downloads. RT-DETR-L is an unused local challenger and is not shipped. Camera and atlas JSON files are tracked configuration/prior data, not extra neural checkpoints.
+Published in the [weights-v1 release](https://github.com/Imamatdin/zeroth-law-traffic/releases/tag/weights-v1) ([publication steps](docs/weights_release.md)). On 2026-09-27, `bash weights/download.sh` in an empty folder downloaded it from that release and passed the SHA256 check; a second run reported it already verified. `download.sh` uses curl, verifies SHA256 before atomic installation, and skips an already verified file. No inference-time downloads. RT-DETR-L is an unused local challenger and is not shipped. Camera and atlas JSON files are tracked configuration/prior data, not extra neural checkpoints.
 
 ## Approach
 
@@ -59,14 +61,16 @@ Unsupported CUDA operations, hardware/library changes, FP16 rounding and equal-s
 
 ## Runtime evidence
 
-| Evidence | Hardware/revision | Status |
-|---|---|---|
-| C3905: 768.1 / 827.2 s for 127.6275 s video, 6.02x / 6.48x | CPU laptop, eng/integration before current risk fixes | Measured historical functional runs with relaxed time limit; not a 3x pass |
-| 20.05 s clip: 187.1 s, about 9.33x | CPU laptop, integration-1 handoff | Historical measured smoke; guard reached stride 15 |
-| A 1.25x + B 1.55x + margin 0.20x | Current guard configuration | Budget allocation, not measured throughput |
-| Current full pipeline on one T4 | Judge target | UNMEASURED |
+Official harness, unchanged, on C3905 (127.63 s, 4K 10-bit 4:2:2), 3x budget 382.9 s. Ratio is total harness seconds over video duration.
 
-Laptop RAM is 7.7 GB with heavy paging; local timing is indicative only. Judges allow A+B together 3x duration. Import/warm-up is outside their per-video timer. Run `python scripts/t4_end_to_end.py --videos /path/to/short-clips --out outputs/t4-final` and inspect guard stride/ratios. Detector-only FPS does not establish this gate. Never relax the time factor for acceptance.
+| Run | Hardware | Part A | Part B | Total | Ratio | Result |
+|---|---|---|---|---|---|---|
+| All event classes off | GPU pod (RTX PRO 4500 Blackwell), `taskset` to 8 cores | 53.1 s | 67.6 s | 120.8 s | 0.95x | Within budget, format valid |
+| Non-visual classes on (incl. accident) | Same pod, 8 cores | 102.4 s | 67.2 s | 169.5 s | 1.33x | Within budget, format valid |
+| Before the decode fix (FFmpeg pipe in Part A) | Colab T4 | 349.5 s | 44.2 s | 393.7 s | 3.08x | **Over budget**: scored as empty |
+| After the decode fix (OpenCV in Part A) | Colab T4 | – | – | – | – | Pending |
+
+The T4 failure came from Part A's FFmpeg decode: the harness's own OpenCV decode of every 4K frame in Part B took under 44.2 s. Part A now decodes with OpenCV exactly as the cache builder does; `ZLT_DECODE=ffmpeg` restores the old path. The pod is not the judges' T4, so its ratios show headroom, not compliance. Budget split: A 1.25x, B 1.55x, 0.20x margin; the guard widens inference stride (3 to 15) when a part runs slow. Import/warm-up is outside the per-video timer. Reproduce with `python scripts/t4_end_to_end.py --videos /path/to/videos --out outputs/t4-final`; never relax the time factor for acceptance.
 
 ## Packaging and final predictions
 
@@ -83,12 +87,10 @@ Development: `python -m pip install -r requirements-dev.txt`, then `python -B -m
 
 ## Team
 
-No `contrib/*/bio.md` files exist in this revision. These are assignments from the team brief, not claims that every deliverable is complete.
-
-| Member | Responsibility | Confirmed profile/contribution |
+| Member | GitHub | Contribution |
 |---|---|---|
-| Iko | Architecture, integration, event/risk pipeline, submission, website coordination | TODO: full name, links, confirmed contribution summary |
-| Jalol | Detector/tracker evaluation and hazard lane | TODO: bio, links, delivered work |
-| Javohir | Scene/signal and near-miss lane | TODO: bio, links, delivered work |
+| Iko | [@Imamatdin](https://github.com/Imamatdin) | Architecture, Part A/B pipeline, integration, website |
+| Jalol | – | Perception caches, T4 testing, labels |
+| Javohir | – | Labels |
 
-See [team brief](docs/TEAM_BRIEF.md). AI tools assisted development; no hosted inference API is used. Website/report links: **TODO: verified public URLs**.
+See [team brief](docs/TEAM_BRIEF.md). AI tools assisted development; no hosted inference API is used. Website: https://zeroth-law-traffic.vercel.app
