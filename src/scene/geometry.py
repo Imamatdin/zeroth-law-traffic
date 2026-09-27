@@ -54,6 +54,7 @@ class Scene:
     road: np.ndarray | None = None
     intersection: np.ndarray | None = None
     stop_lines: dict[str, np.ndarray] = field(default_factory=dict)
+    solid_lines: dict[str, np.ndarray] = field(default_factory=dict)
     signals: dict[str, dict] = field(default_factory=dict)
     approaches: dict[str, dict] = field(default_factory=dict)
     stop_line_meta: dict[str, dict] = field(default_factory=dict)
@@ -84,6 +85,8 @@ class Scene:
         for line in raw.get("stop_lines", []) or []:
             scene.stop_lines[line["id"]] = px(line["points"])
             scene.stop_line_meta[line["id"]] = {k: v for k, v in line.items() if k != "points"}
+        for line in raw.get("solid_lines", []) or []:
+            scene.solid_lines[line["id"]] = px(line["polyline"])
         for app in raw.get("approaches", []) or []:
             scene.approaches[app["id"]] = app
         for sig in raw.get("signals", []) or []:
