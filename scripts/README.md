@@ -32,3 +32,12 @@ The cache contains `meta.json`, `frames.parquet`, `detections.parquet`, and `tra
 ## Geometry overlay
 
 `render_camera_map.py --frame <image> --map <draft.json> --out <image>` draws normalized inspection shapes. It does not establish legal movements or turn the draft into an inference configuration.
+
+## Website export
+
+```bash
+python scripts/export_web.py --video data/samples/C3905.MP4 --cache cache/C3905_yolo11m960_s3 \
+    --events outputs/web_replay/events/C3905.json --risk outputs/web_replay/risk/C3905.json
+```
+
+Read-only over caches, replays and configs; writes compact JSON and a reference frame to `web/public/data/<video_id>/`, committed on the web branch for the static build. See `web/README.md`.
