@@ -1,3 +1,5 @@
 node_modules/
 dist/
 shots/
+# Exported pipeline data is committed for the static build (the root .gitignore excludes data/ dirs).
+!public/data/
