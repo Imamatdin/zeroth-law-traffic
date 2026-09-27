@@ -111,3 +111,22 @@ solid_line_crossing:
   max_settle_s: 2.0           # "fully in the new lane" is searched this far after it
   frame_edge_px: 8
   merge_gap_s: 0.0
+
+congestion:
+  enabled: false
+  vehicle_classes: [2, 3, 4, 5]
+  min_resultant: 0.8          # corridor cells need a consistent normal direction ...
+  corridor_deg: 40            # ... within this of the approach direction
+  min_corridor_cells: 6
+  stop_line_margin: 0.3       # cells behind a stop line (within this fraction beyond its ends) are its queue
+  min_vehicles: 5             # vehicles standing in the corridor at one sample
+  crawl_rel_speed: 0.3        # body heights/s: standing or crawling
+  min_slow_fraction: 0.85
+  free_rel_speed: 1.0         # any vehicle this fast in the corridor = a lane still flows
+  min_lateral_cover: 0.4      # slow vehicles span this fraction of the corridor's width (all lanes)
+  min_on_s: 10.0
+  max_gap_s: 3.0              # one noisy sample or a single car creeping through does not end it
+  min_green_s: 10.0           # signalled approach: still standing through this much green
+  min_unsignalled_s: 60.0     # approach without a known signal: longer than a signal cycle
+  frame_edge_px: 8
+  merge_gap_s: 5.0
