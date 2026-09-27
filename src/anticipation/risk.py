@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import math
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -41,6 +41,7 @@ class RiskConfig:
     min_age_s: float = 0.5
     border_px: float = 8.0
     stale_s: float = 1.0
+    signal_hold_s: float = 1.0       # measured from last known reading, never refreshed by unknown
     moving_h_per_s: float = 0.3
     max_pair_dist_h: float = 8.0
     horizon_s: float = 7.5            # pairs whose closest approach is further away are ignored
@@ -75,7 +76,6 @@ class RiskConfig:
 
 @dataclass
 class _Track:
-    cls_hist: deque = field(default_factory=deque)
     samples: deque = field(default_factory=deque)     # (t, fx, fy, h, x1, y1, x2, y2)
     vels: deque = field(default_factory=deque)        # (t, vx, vy)
     last_t: float = 0.0
@@ -147,6 +147,11 @@ class RiskModel:
     def reset(self, meta: dict) -> None:
         self.meta = dict(meta)
         self.tracks: dict[int, _Track] = {}
+        # Tiny per-ID counts survive kinematic eviction if the tracker reacquires
+        # the same ID. Reset clears them between videos; no future votes enter.
+        self.class_votes: dict[int, Counter] = {}
+        self.known_signals: dict[str, tuple[str, float]] = {}
+        self.signal_states: dict[str, str] = {}
         self.smoothed = 0.0
         self.courses: dict[tuple[int, int], tuple[float, float, float]] = {}   # pair -> (since, last_t, last_tca)
         self.last_t: float | None = None
@@ -163,11 +168,10 @@ class RiskModel:
             x1, y1, x2, y2 = tr.xyxy
             fx, fy = tr.foot_point
             st.samples.append((t, fx, fy, y2 - y1, x1, y1, x2, y2))
-            st.cls_hist.append(tr.cls)
+            self.class_votes.setdefault(tr.track_id, Counter())[tr.cls] += 1
             st.last_t = t
             while len(st.samples) > c.min_fit_samples and st.samples[0][0] < t - c.history_s:
                 st.samples.popleft()
-                st.cls_hist.popleft()
             # The window always holds at least min_fit_samples: when the runtime guard widens the stride
             # (0.5 s between updates at stride 15), a fixed 0.6 s window would read every track as still.
             recent = [s for s in st.samples if s[0] >= t - c.vel_window_s]
@@ -191,7 +195,7 @@ class RiskModel:
             _, vx, vy = st.vels[-1]
             vel = np.array(st.vels)
             acc = _ls_slope(vel[:, 0], vel[:, 1:3]) if len(vel) >= 3 else np.zeros(2)
-            cls = max(set(st.cls_hist), key=list(st.cls_hist).count)
+            cls = self._class_vote(tid)
             rows.append((tid, cls, fx, fy, max(h, 1.0), x1, y1, x2, y2, vx, vy, acc[0], acc[1]))
         if not rows:
             return None
@@ -202,7 +206,36 @@ class RiskModel:
         s["speed_h"] = speed / s["h"]
         unit = np.where(speed[:, None] > 0, s["v"] / np.maximum(speed[:, None], 1e-9), 0.0)
         s["decel_h"] = -(s["acc"] * unit).sum(axis=1) / s["h"]
+        # Even a newly seen bike can explain its rider before the bike has enough
+        # samples for a velocity fit. Use only boxes observed in this update.
+        bikes = [st.samples[-1][4:8] for tid, st in self.tracks.items()
+                 if st.last_t == t and self._class_vote(tid) in TWO_WHEELERS]
+        rider = np.zeros(len(rows), bool)
+        for x1, y1, x2, y2 in bikes:
+            w, h = x2 - x1, y2 - y1
+            fx, fy = s["p"].T
+            rider |= ((s["cls"] == PERSON) & (fx >= x1 - .25 * w) & (fx <= x2 + .25 * w)
+                      & (fy >= y1 - .25 * h) & (fy <= y2 + .25 * h))
+        s["rider"] = rider
         return s
+
+    def _class_vote(self, tid: int) -> int:
+        """Lifetime causal majority; lowest class ID breaks ties deterministically."""
+        counts = self.class_votes[tid]
+        return min(counts, key=lambda cls: (-counts[cls], cls))
+
+    def _hold_signals(self, readings: dict | None, t: float) -> dict[str, str]:
+        readings = readings or {}
+        states = {}
+        for sid in self.known_signals.keys() | readings.keys():
+            state = readings.get(sid, "unknown")
+            if state in ("red", "yellow", "green"):
+                self.known_signals[sid] = (state, t)
+            else:
+                previous, known_t = self.known_signals.get(sid, ("unknown", -math.inf))
+                state = previous if t - known_t <= self.cfg.signal_hold_s else "unknown"
+            states[sid] = state
+        return states
 
     # -- modifiers ---------------------------------------------------------------------------
     def _signal_modifiers(self, s: dict, signal_states: dict | None) -> tuple[np.ndarray, np.ndarray]:
@@ -312,6 +345,9 @@ class RiskModel:
         inside = ((s["box"][:, 0] > b) & (s["box"][:, 1] > b) & (s["box"][:, 2] < self.scene.width - b)
                   & (s["box"][:, 3] < self.scene.height - b))
         keep &= inside[i] & inside[j]
+        # The bike represents the attached person against every other road user,
+        # not just in the rider-bike pair. Reevaluate attachment each update.
+        keep &= ~s["rider"][i] & ~s["rider"][j]
         people_i, people_j = cls_i == PERSON, cls_j == PERSON
         keep &= ~(people_i & people_j)
         keep &= ~(people_i & ~ped_on_carriageway[i]) & ~(people_j & ~ped_on_carriageway[j])
@@ -402,8 +438,9 @@ class RiskModel:
         if self.last_t is not None and t_sec < self.last_t:
             raise ValueError("update() must be called with non-decreasing time")
         self._observe(tracks, t_sec)
+        self.signal_states = self._hold_signals(signal_states, t_sec)
         state = self._state_arrays(t_sec)
-        raw, ev = (0.0, {}) if state is None else self._pair_scores(state, signal_states, t_sec)
+        raw, ev = (0.0, {}) if state is None else self._pair_scores(state, self.signal_states, t_sec)
         dt = 0.0 if self.last_t is None else t_sec - self.last_t
         if raw >= self.smoothed:
             self.smoothed += self.cfg.rise_alpha * (raw - self.smoothed)
