@@ -1,0 +1,14 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0+cpu
+torchvision==0.25.0+cpu
+ultralytics-opencv-headless==8.4.163
+numpy==2.4.6
+opencv-python-headless==5.0.0.93
+imageio-ffmpeg==0.6.0
+pandas==3.0.6
+PyYAML==6.0.3
+lap==0.5.13
+scipy==1.17.1
+fastapi==0.141.1
+uvicorn==0.54.0
+python-multipart==0.0.32
