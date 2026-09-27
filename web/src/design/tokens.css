@@ -1,0 +1,72 @@
+/* Design tokens. The canvas reads the same custom properties through tokens.js, so colours live here only. */
+:root {
+  /* paper and ink */
+  --paper: #eceee6;
+  --paper-deep: #e1e4d8;
+  --paper-edge: #cfd3c4;
+  --ink: #26283a;
+  --ink-soft: #4a4d63;
+  --ink-faint: #858899;
+  --rule: #c6cabc;
+
+  /* watercolour washes for the scene */
+  --wash-asphalt: #8d93a8;
+  --wash-asphalt-far: #a2a7b8;
+  --wash-pavement: #cfcfc4;
+  --wash-plaza: #c7b8c2;
+  --wash-refuge: #d3a3ab;
+  --wash-concrete: #c3c2b3;
+  --wash-kerb: #9fa0a0;
+  --wash-leaf: #7d9e86;
+  --wash-leaf-deep: #5b7d6e;
+  --wash-grass: #a6bf97;
+  --wash-building: #aeb4c6;
+  --wash-building-deep: #8e95ab;
+  --wash-glass: #b9cbd8;
+  --wash-window-lit: #f0d487;
+  --wash-bus: #6fb35a;
+  --wash-sign: #3d6fb6;
+  --line-paint: #f7f7f1;
+  --line-yellow: #cfa93c;
+
+  /* meaning */
+  --sig-red: #cf4540;
+  --sig-yellow: #dfad35;
+  --sig-green: #4b9b58;
+  --sig-unread: #9b9dab;
+  --risk: #a3306b;
+  --field: #5b5f7a;
+  --ev-jaywalking: #2c877b;
+  --ev-stop_line: #4957a5;
+  --ev-red_light: #c13a55;
+  --ev-stopped_vehicle: #a97b22;
+  --ev-wrong_way: #6d4ea0;
+  --ev-default: #4a4d63;
+
+  /* type */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Recursive', ui-sans-serif, system-ui, sans-serif;
+  --font-hand: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+  --step--2: 0.72rem;
+  --step--1: 0.84rem;
+  --step-0: 1rem;
+  --step-1: 1.2rem;
+  --step-2: 1.48rem;
+  --step-3: clamp(1.7rem, 1.2rem + 1.6vw, 2.2rem);
+  --step-4: clamp(2.1rem, 1.3rem + 3vw, 3.3rem);
+  --hand-1: 1.25rem;
+  --hand-2: 1.6rem;
+  --leading: 1.5;
+
+  /* space and shape */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 36px;
+  --s-7: 56px;
+  --gutter: clamp(16px, 3vw, 40px);
+  --stroke: 1.5px;
+  --radius-sketch: 3px 7px 4px 6px / 6px 3px 7px 4px;
+}

@@ -1,0 +1,34 @@
+.masthead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  padding: var(--s-4) var(--gutter) 0;
+  max-width: 1680px;
+  margin: 0 auto;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100, 'WONK' 1;
+  font-weight: 600;
+  font-size: var(--step-2);
+  text-decoration: none;
+}
+
+.masthead-note {
+  font-size: var(--hand-1);
+  color: var(--ink-soft);
+}
+
+.load-state {
+  padding: var(--s-7) var(--gutter);
+  font-size: var(--hand-2);
+  color: var(--ink-soft);
+}
+
+@media (max-width: 600px) {
+  .masthead-note {
+    font-size: 1.05rem;
+  }
+}
