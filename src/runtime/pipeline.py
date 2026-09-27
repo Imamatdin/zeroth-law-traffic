@@ -2,17 +2,15 @@
 import importlib
 import importlib.util
 import json
-import threading
 import time
 import pandas as pd
 from src.anticipation.risk import RiskModel
 from src.atlas.flow import Atlas
-from src.contracts import Detections
 from src.events.base import SignalTimeline, VideoContext
 from src.events.registry import load_config, run_engines
 from src.features.tracks import compute_world
 from src.models_registry import CONFIG, ROOT, new_detector
-from src.perception.tracker import ByteTrackTracker
+from src.runtime.tracker import PrivateTracker
 from src.postprocess.segments import to_official
 from src.runtime.budget import BudgetGuard, log
 from src.runtime.decode import frames, metadata, restore
@@ -23,34 +21,6 @@ TRACK_COLUMNS = ["frame", "t", "track_id", "cls", "score", "x1", "y1", "x2", "y2
 # Static priors, read once at import (outside every video's budget). Neither depends on any video.
 CAMERA = ROOT / "configs/camera.yaml"
 ATLAS_DATA = json.loads((ROOT / "configs/atlas.json").read_text(encoding="utf-8"))
-_ID_LOCK = threading.Lock()
-
-
-class PrivateTracker:
-    """Keep ByteTrack's base-3 clock and isolate its library-global ID allocator."""
-    def __init__(self, fps):
-        from ultralytics.trackers.basetrack import BaseTrack
-        with _ID_LOCK:
-            saved = BaseTrack._count
-            try:
-                self.tracker = ByteTrackTracker(fps, 3, **CONFIG.get("tracker", {}))
-            finally:
-                BaseTrack._count = saved
-        self.last_frame, self.counter = -3, 0
-
-    def update(self, dets, idx):
-        from ultralytics.trackers.basetrack import BaseTrack
-        with _ID_LOCK:
-            saved = BaseTrack._count
-            BaseTrack._count = self.counter
-            try:
-                for missing in range(self.last_frame + 3, idx, 3):
-                    self.tracker.update(Detections.empty(), missing)
-                out = self.tracker.update(dets, idx)
-                self.counter, self.last_frame = BaseTrack._count, idx
-                return out
-            finally:
-                BaseTrack._count = saved
 
 
 def signal_rows(frame, idx, fps, scene):
@@ -79,7 +49,7 @@ def stitch_if_present(tracks, width, height):
 def detect_events(video_path):
     meta = metadata(video_path)
     guard = BudgetGuard("A", meta)
-    detector, tracker = new_detector(), PrivateTracker(meta["fps"])
+    detector, tracker = new_detector(), PrivateTracker(meta["fps"], CONFIG.get("tracker", {}))
     scene = Scene.load(ROOT / "configs/camera.yaml", meta["width"], meta["height"])
     small_scene = None
     rows, signals = [], []
@@ -125,7 +95,7 @@ class RiskEstimator:
         self.meta = dict(meta)
         self.guard = BudgetGuard("B", self.meta)
         self.detector = new_detector("B")
-        self.tracker = PrivateTracker(self.meta["fps"])
+        self.tracker = PrivateTracker(self.meta["fps"], CONFIG.get("tracker", {}))
         # Causal risk: own tracks and this frame's own signal reading only (see
         # private/handoff-2026-09-26-risk.md). Never Part A tracks, stitching or signal timelines.
         self.risk = RiskModel(Scene.load(CAMERA, self.meta["width"], self.meta["height"]), ATLAS_DATA)
