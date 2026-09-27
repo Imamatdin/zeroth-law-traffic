@@ -8,6 +8,7 @@ from src.anticipation.risk import RiskModel
 from src.atlas.flow import Atlas
 from src.events.base import SignalTimeline, VideoContext
 from src.events.registry import load_config, run_engines
+from src.events.visual import VisualCollector, needs_visual
 from src.features.tracks import compute_world
 from src.models_registry import CONFIG, ROOT, new_detector
 from src.runtime.tracker import PrivateTracker
@@ -51,6 +52,9 @@ def detect_events(video_path):
     guard = BudgetGuard("A", meta)
     detector, tracker = new_detector(), PrivateTracker(meta["fps"], CONFIG.get("tracker", {}))
     scene = Scene.load(ROOT / "configs/camera.yaml", meta["width"], meta["height"])
+    config = load_config(ROOT / "configs/events.yaml")
+    # Pixels are kept only when a visual class (road_obstacle, fire_smoke) is enabled.
+    visual = VisualCollector(meta["fps"], meta["width"], meta["height"]) if needs_visual(config) else None
     small_scene = None
     rows, signals = [], []
     stream = frames(video_path, meta)
@@ -59,6 +63,8 @@ def detect_events(video_path):
             if small_scene is None:
                 small_scene = Scene.load(ROOT / "configs/camera.yaml", frame.shape[1], frame.shape[0])
             signals.extend(signal_rows(frame, idx, meta["fps"], small_scene))
+            if visual is not None and visual.due(idx):
+                visual.add(idx, frame)
             if not guard.due(idx):
                 continue
             started = time.perf_counter()
@@ -84,8 +90,9 @@ def detect_events(video_path):
     timelines = ({sid: SignalTimeline.from_series(series, sid) for sid in series.signal.unique()}
                  if len(series) else {})
     ctx = VideoContext(meta["video_id"], meta["fps"], meta["width"], meta["height"],
-                       meta["n_frames"] / meta["fps"], 3, world, scene, timelines, Atlas(ATLAS_DATA))
-    _, segments = run_engines(ctx, load_config(ROOT / "configs/events.yaml"), only_enabled=True)
+                       meta["n_frames"] / meta["fps"], 3, world, scene, timelines, Atlas(ATLAS_DATA),
+                       visual.result() if visual is not None else None)
+    _, segments = run_engines(ctx, config, only_enabled=True)
     guard.finish()
     return to_official(segments)
 
