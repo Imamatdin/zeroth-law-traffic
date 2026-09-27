@@ -218,3 +218,28 @@ accident:
   fixed_speed_h: 1.5          # arriving at least this fast
   fixed_impact_factor: 1.5    # with a clearly abrupt stop (x impact thresholds)
   merge_gap_s: 1.0
+
+road_obstacle:
+  enabled: false
+  min_samples: 20             # visual samples (1 per second) needed at all
+  sample_every_s: 1.0         # spacing of the visual samples (VisualCollector default)
+  illum_sigma_px: 25          # frames are divided by this blur (640-px samples) against lighting drift
+  diff_thr: 0.25              # normalised intensity change against the video's median background
+  box_grow: 0.15              # track boxes grown by this fraction when explaining pixels
+  max_covered_fraction: 0.3   # pixels covered by a track box this often in a window are explained
+  window_s: 10.0
+  window_step_s: 5.0
+  min_area_px: 12             # at 640 px wide
+  min_size_h: 0.3             # blob height relative to a vehicle box at the same depth ...
+  max_size_h: 1.2             # ... larger is a vehicle or a lighting change
+  min_edge_gain: 1.3          # textured: edge energy this much above the background's
+  link_iou: 0.3
+  link_gap: 1                 # windows without a match inside one obstacle
+  min_persist_s: 20.0
+  max_drift_box: 0.5          # stationary: centre moves at most this many of its own heights
+  min_region_differs: 0.5     # a sample shows the obstacle when half its region differs
+  still_rel_speed: 0.3        # road users standing (body heights/s) ...
+  queue_grow: 0.5             # ... whose boxes, grown by half their size, touch the obstacle ...
+  max_queue_fraction: 0.5     # ... in this share of its samples: a queue, not an obstacle
+  merge_gap_s: 5.0
+

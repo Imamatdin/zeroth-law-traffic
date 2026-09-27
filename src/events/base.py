@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from src.atlas.flow import Atlas
+from src.events.visual import VisualSamples
 from src.scene.geometry import Scene, side_of_line
 from src.scene.signal import smooth_states
 
@@ -81,6 +82,7 @@ class VideoContext:
     scene: Scene
     signals: dict[str, SignalTimeline]
     atlas: Atlas | None = None
+    visual: VisualSamples | None = None     # downscaled frames, only for the visual engines
 
     @property
     def step_s(self) -> float:
