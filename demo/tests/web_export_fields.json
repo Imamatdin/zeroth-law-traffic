@@ -1,0 +1,69 @@
+{
+  "replay": [
+    "classes",
+    "duration",
+    "fps",
+    "height",
+    "q",
+    "t",
+    "tracks",
+    "units",
+    "video",
+    "width"
+  ],
+  "track": [
+    "cls",
+    "h",
+    "hd",
+    "id",
+    "k",
+    "raw",
+    "st",
+    "v",
+    "w",
+    "x",
+    "y"
+  ],
+  "events": [
+    "classes",
+    "enabled_in_submission",
+    "mode",
+    "raw_events",
+    "segments",
+    "status",
+    "submitted"
+  ],
+  "risk": [
+    "alarm_starts",
+    "horizon_s",
+    "note",
+    "pairs",
+    "percentiles",
+    "raw",
+    "risk",
+    "smoothed",
+    "status",
+    "t",
+    "threshold"
+  ],
+  "risk_pair": [
+    "a",
+    "b",
+    "closing_h",
+    "cls",
+    "dist_h",
+    "dmin_h",
+    "flags",
+    "held",
+    "i",
+    "px",
+    "py",
+    "raw_ids",
+    "tca"
+  ],
+  "signal": [
+    "near_stop_crossings",
+    "note",
+    "signals"
+  ]
+}
