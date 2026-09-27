@@ -4,7 +4,7 @@ Vite + React, static build. The site consumes the same rich event, trajectory, a
 
 ## Data
 
-`public/data/` is generated and not committed:
+`public/data/` is generated, and committed so Vercel can build from Git. Regenerate it, never edit it by hand:
 
 ```bash
 python scripts/export_web.py --video data/samples/C3905.MP4 --cache cache/C3905_yolo11m960_s3 \

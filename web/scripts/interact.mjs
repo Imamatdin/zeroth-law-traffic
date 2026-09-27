@@ -67,11 +67,11 @@ const clockT = (page) => page.evaluate(() => window.__zlt.clock.t);
   const t1 = await clockT(page);
   check('timeline slider: ArrowRight advances one second', Math.abs(t1 - t0 - 1) < 1e-6, `${t0.toFixed(2)} -> ${t1.toFixed(2)}`);
 
-  await page.getByLabel('Flow atlas').check();
+  await page.getByRole('checkbox', { name: 'Flow atlas' }).check();
   await page.evaluate(() => window.__zlt.renderer.current.resetView());
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `${out}/atlas.png` });
-  check('flow atlas toggles on', await page.getByLabel('Flow atlas').isChecked());
+  check('flow atlas toggles on', await page.getByRole('checkbox', { name: 'Flow atlas' }).isChecked());
   await ctx.close();
 }
 

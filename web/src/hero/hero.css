@@ -386,7 +386,7 @@
 
 .tl-label {
   font-family: var(--font-hand);
-  font-size: 18px;
+  font-size: clamp(15px, 3.6vw, 18px);
   font-weight: 700;
   fill: var(--ink);
 }

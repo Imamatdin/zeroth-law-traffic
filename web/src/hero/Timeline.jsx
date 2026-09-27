@@ -21,7 +21,7 @@ export default function Timeline({ data, clock, onEvent, selectedEvent }) {
   const slider = useRef(null);
   const width = useWidth(wrap);
   const narrow = width < 560;
-  const LW = narrow ? 78 : 128;
+  const LW = narrow ? 104 : 128;
   const PW = Math.max(100, width - LW - 10);
   const D = data.duration;
   const X = (t) => LW + (t / D) * PW;
@@ -212,11 +212,11 @@ export default function Timeline({ data, clock, onEvent, selectedEvent }) {
         <text x={LW + PW} y={rows.field + 6} textAnchor="end" className="tl-unit num">max {fieldPath.max}</text>
 
         <text x={0} y={rows.risk + 14} className="tl-label">risk</text>
-        <text x={0} y={rows.risk + 30} className="tl-sub">P(accident ≤ 5 s)</text>
+        <text x={0} y={rows.risk + 30} className="tl-sub">{narrow ? 'P ≤ 5 s' : 'P(accident ≤ 5 s)'}</text>
         <text x={0} y={rows.risk + 44} className="tl-sub tl-sub-raw">pair score</text>
         <rect x={LW} y={rows.risk} width={PW} height={70} fill="none" stroke="var(--rule)" />
         <line x1={LW} x2={LW + PW} y1={riskPath.Y(0.5)} y2={riskPath.Y(0.5)} stroke="var(--ink-soft)" strokeDasharray="5 4" />
-        <text x={LW + 4} y={riskPath.Y(0.5) - 4} className="tl-unit">alarm threshold 0.5</text>
+        <text x={LW + PW - 4} y={riskPath.Y(0.5) - 4} textAnchor="end" className="tl-unit">alarm threshold 0.5</text>
         <path d={riskPath.raw} fill="none" stroke="var(--ink-soft)" strokeWidth={1} strokeDasharray="1.5 2.5" />
         <path d={riskPath.risk} fill="none" stroke="var(--risk)" strokeWidth={1.8} />
         <text x={LW + PW} y={rows.risk + 82} textAnchor="end" className="tl-unit num">

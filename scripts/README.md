@@ -40,4 +40,4 @@ python scripts/export_web.py --video data/samples/C3905.MP4 --cache cache/C3905_
     --events outputs/web_replay/events/C3905.json --risk outputs/web_replay/risk/C3905.json
 ```
 
-Read-only over caches, replays and configs; writes compact JSON and a reference frame to `web/public/data/<video_id>/` (not committed). See `web/README.md`.
+Read-only over caches, replays and configs; writes compact JSON and a reference frame to `web/public/data/<video_id>/`, committed on the web branch for the static build. See `web/README.md`.

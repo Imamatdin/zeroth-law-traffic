@@ -35,6 +35,7 @@
   --sig-green: #4b9b58;
   --sig-unread: #9b9dab;
   --risk: #a3306b;
+  --data: #2a6fb0; /* validated: chroma, contrast and CVD vs --risk on --paper (dataviz validator) */
   --field: #5b5f7a;
   --ev-jaywalking: #2c877b;
   --ev-stop_line: #4957a5;

@@ -13,6 +13,7 @@ can point at the main checkout.
 """
 
 import argparse
+import ast
 import json
 import subprocess
 import sys
@@ -159,7 +160,17 @@ def export_risk(risk_rec: dict, cache: Path, meta: dict, raw_to_track: dict):
     }
 
 
-def export_events(ev_rec: dict, events_cfg: dict):
+def official_classes(solution: Path) -> list[str]:
+    """CLASSES from solution.py, read without importing it (importing loads the models)."""
+    tree = ast.parse(solution.read_text(encoding="utf-8"))
+    for node in tree.body:
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target] if isinstance(node, ast.AnnAssign) else []
+        if any(getattr(t, "id", None) == "CLASSES" for t in targets):
+            return list(ast.literal_eval(node.value))
+    raise SystemExit(f"CLASSES not found in {solution}")
+
+
+def export_events(ev_rec: dict, events_cfg: dict, classes: list[str]):
     enabled = {k: bool(v.get("enabled")) for k, v in events_cfg.items() if isinstance(v, dict) and "enabled" in v}
 
     def clean(e):
@@ -171,6 +182,7 @@ def export_events(ev_rec: dict, events_cfg: dict):
     return {
         "status": ev_rec["status"],
         "mode": "development replay with every engine forced on (--all); not the submission output",
+        "classes": classes,
         "enabled_in_submission": enabled,
         "submitted": submitted,
         "raw_events": [clean(e) for e in ev_rec["raw_events"]],
@@ -276,7 +288,10 @@ def export_eda(df: pd.DataFrame, meta: dict, lighting: dict, signal: dict, video
                   "bitrate_mbps": round(video.stat().st_size * 8 / dur / 1e6, 1),
                   "cache_stride": meta["request"]["stride"],
                   "detector": meta["request"]["pipeline"]["config"]["detector"]["weights"],
-                  "detector_imgsz": meta["request"]["pipeline"]["config"]["detector"]["imgsz"]},
+                  "detector_imgsz": meta["request"]["pipeline"]["config"]["detector"]["imgsz"],
+                  "pipeline": meta["request"]["pipeline"]["config"],
+                  "weights": meta["request"]["pipeline"]["weights"],
+                  "packages": meta["request"]["pipeline"]["packages"]},
         "classes": list(OBJECT_CLASSES),
         "counts_per_second": counts,
         "unique_tracks": unique,
@@ -376,7 +391,8 @@ def main():
     signal = export_signal(cache, meta)
     sizes["signal.json"] = dump(out / "signal.json", signal)
     sizes["field.json"] = dump(out / "field.json", export_field(cache, a.keep_every, 5.0, 3.0, 8.0))
-    sizes["events.json"] = dump(out / "events.json", export_events(ev_rec, events_cfg))
+    classes = official_classes(src / "solution.py")
+    sizes["events.json"] = dump(out / "events.json", export_events(ev_rec, events_cfg, classes))
     sizes["risk.json"] = dump(out / "risk.json", export_risk(risk_rec, cache, meta, raw_to_track))
     sizes["scene.json"] = dump(out / "scene.json", {"camera": camera, "source": "configs/camera.yaml"})
     sizes["atlas.json"] = dump(out / "atlas.json", {

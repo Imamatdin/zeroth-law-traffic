@@ -5,6 +5,7 @@ import Notebook from './Notebook.jsx';
 import { createClock, useClock } from './clock.js';
 import { CLASS_NAMES } from '../scene/renderer.js';
 import { eventVar } from '../design/tokens.js';
+import { sceneApi } from '../sections/common.jsx';
 import './hero.css';
 
 const LAYERS = [
@@ -81,6 +82,10 @@ export default function Hero({ data }) {
 
   useEffect(() => {
     window.__zlt = { clock, setLayers, select, flyTo, data, renderer: rendererRef };
+    sceneApi.flyTo = flyTo;
+    return () => {
+      sceneApi.flyTo = null;
+    };
   }, [clock, select, flyTo, data]);
 
   const cycle = useCallback((dir) => {
@@ -123,7 +128,7 @@ export default function Hero({ data }) {
   const label = `Illustrated replay of camera ${data.id} at ${snap.t.toFixed(1)} seconds: ${visible.length} tracked road users in view${sel ? `, ${CLASS_NAMES[sel.cls]} #${sel.id} selected` : ''}.`;
 
   return (
-    <section className="hero" ref={heroRef} aria-labelledby="hero-title">
+    <section className="hero" id="scene" ref={heroRef} aria-labelledby="hero-title">
       <div className="hero-intro">
         <h1 id="hero-title">One avenue, redrawn from what our tracker saw.</h1>
         <p className="hero-lede">
