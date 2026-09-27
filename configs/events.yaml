@@ -152,3 +152,37 @@ illegal_u_turn:
   <<: *turns                  # same turn finder and thresholds as illegal_turn
   enabled: false
   merge_gap_s: 0.0
+
+near_miss:
+  enabled: false
+  vel_window_s: 0.6           # centred velocity/acceleration fits (Part A may look ahead)
+  min_heading_speed_h: 0.5    # slower objects carry no yaw rate
+  frame_edge_px: 8
+  rider_overlap: 0.5
+  ped_margin_box_h: 0.5       # pedestrians within ~1 m of a kerb, refuge or median are off the road
+  max_pair_dist_h: 8.0
+  footprint_depth: 0.35       # lower band of the box = ground footprint for the contact proxy
+  contact_overlap: 0.1
+  tca_max_s: 2.0              # conflict: closest approach within this time ...
+  dmin_max_h: 0.5             # ... predicted to come this close (pair box heights) ...
+  closing_min_h: 0.8          # ... closing at least this fast (box heights/s)
+  follow_cos: 0.87            # |cos| above this = parallel paths (within 30 degrees) ...
+  rear_closing_min_h: 2.0     # ... which count only when closing this fast
+  conflict_gap_s: 0.5
+  pre_s: 1.0                  # evasive action searched from this long before the conflict ...
+  post_s: 1.5                 # ... to this long after it
+  moving_h: 0.5               # crossing conflicts need both road users moving this fast
+  brake_h_s2: 3.5             # hard braking (box heights/s^2); a normal stop is ~1
+  onset_h_s2: 1.0             # the brake's onset is backdated while deceleration exceeds this
+  min_speed_before_h: 1.0     # braking from at least this speed
+  swerve_deg_s: 40            # yaw rate of a swerve ...
+  swerve_max_deg_s: 150       # ... up to this; faster is heading noise on a small or occluded box
+  swerve_return_s: 1.5        # ... after which, within this long, the heading is back on course:
+  swerve_max_net_deg: 25      # net heading change around the swerve at most this
+  min_evasive_s: 0.3
+  evasive_gap_s: 0.2
+  max_box_change: 0.25        # box height change per sample above this = occlusion, not motion
+  near_dist_h: 1.0            # the two must come within this of each other (pair box heights)
+  clear_dist_h: 1.5           # clear of each other: this far apart and no longer closing
+  max_event_s: 6.0
+  merge_gap_s: 0.5
