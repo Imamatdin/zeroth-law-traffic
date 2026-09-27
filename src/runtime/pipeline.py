@@ -1,9 +1,12 @@
 """Submission wiring. No caches or Part A output enter the causal estimator."""
 import importlib
 import importlib.util
+import json
 import threading
 import time
 import pandas as pd
+from src.anticipation.risk import RiskModel
+from src.atlas.flow import Atlas
 from src.contracts import Detections
 from src.events.base import SignalTimeline, VideoContext
 from src.events.registry import load_config, run_engines
@@ -17,6 +20,9 @@ from src.scene.geometry import Scene
 from src.scene.signal import classify_head, classify_signal, lamp_lit
 
 TRACK_COLUMNS = ["frame", "t", "track_id", "cls", "score", "x1", "y1", "x2", "y2", "fx", "fy"]
+# Static priors, read once at import (outside every video's budget). Neither depends on any video.
+CAMERA = ROOT / "configs/camera.yaml"
+ATLAS_DATA = json.loads((ROOT / "configs/atlas.json").read_text(encoding="utf-8"))
 _ID_LOCK = threading.Lock()
 
 
@@ -108,7 +114,7 @@ def detect_events(video_path):
     timelines = ({sid: SignalTimeline.from_series(series, sid) for sid in series.signal.unique()}
                  if len(series) else {})
     ctx = VideoContext(meta["video_id"], meta["fps"], meta["width"], meta["height"],
-                       meta["n_frames"] / meta["fps"], 3, world, scene, timelines)
+                       meta["n_frames"] / meta["fps"], 3, world, scene, timelines, Atlas(ATLAS_DATA))
     _, segments = run_engines(ctx, load_config(ROOT / "configs/events.yaml"), only_enabled=True)
     guard.finish()
     return to_official(segments)
@@ -120,6 +126,11 @@ class RiskEstimator:
         self.guard = BudgetGuard("B", self.meta)
         self.detector = new_detector("B")
         self.tracker = PrivateTracker(self.meta["fps"])
+        # Causal risk: own tracks and this frame's own signal reading only (see
+        # private/handoff-2026-09-26-risk.md). Never Part A tracks, stitching or signal timelines.
+        self.risk = RiskModel(Scene.load(CAMERA, self.meta["width"], self.meta["height"]), ATLAS_DATA)
+        self.risk.reset(self.meta)
+        self.lamps = {sid: sig["lamps_px"] for sid, sig in self.risk.scene.signals.items() if sig.get("lamps_px")}
         self.last_score, self.last_t = 0.0, -1.0
         self.tracks = []
 
@@ -134,7 +145,8 @@ class RiskEstimator:
             return self.last_score
         started = time.perf_counter()
         self.tracks = self.tracker.update(self.detector.predict([frame])[0], idx)
-        self.last_score = 0.0  # Claude's causal risk logic will replace this.
+        signals = {sid: classify_head(frame, lamps) for sid, lamps in self.lamps.items()}
+        self.last_score = self.risk.update(self.tracks, t_sec, signals)
         self.guard.observed(idx, time.perf_counter() - started)
         if idx == self.meta["n_frames"] - 1:
             self.guard.finish()

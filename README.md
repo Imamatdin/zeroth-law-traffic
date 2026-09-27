@@ -4,7 +4,7 @@ Traffic event detection and causal accident anticipation for the WIUT Hackathon 
 
 ## Current status
 
-The official starter kit remains unchanged. `solution.py` runs local YOLO11m perception, ByteTrack, an optional Part A stitching hook, the world model, and the enabled event engines with segment postprocessing. The checked-in event configuration currently disables every engine. Risk perception is causal and independent; the risk score intentionally remains 0.0 pending risk logic. No detection accuracy or anticipation performance is claimed.
+The official starter kit remains unchanged. `solution.py` runs local YOLO11m perception, ByteTrack, an optional Part A stitching hook, the world model, and the enabled event engines with segment postprocessing. The checked-in event configuration currently disables every engine. Part B runs its own detector and tracker and feeds a causal interaction-risk model (`src/anticipation/risk.py`) with its own tracks and the signal read from each frame; it never uses Part A output. No detection accuracy or anticipation performance is claimed.
 
 Development infrastructure includes typed data contracts, a detector/tracker cache interface, an evaluator for saved predictions, exact-frame review sheets, and geometry-overlay tooling. Camera verification and dev-label adjudication are in progress. No detection accuracy or anticipation performance is claimed yet.
 

@@ -101,7 +101,10 @@ class Calibrator:
     def __call__(self, raw: float) -> float:
         if self.xs is not None:
             return float(np.interp(raw, self.xs, self.ys))
-        return float(1.0 / (1.0 + math.exp(-(raw - self.mid) / self.slope)))
+        # Logistic rescaled so that no conflict at all (raw 0) is exactly 0 risk.
+        base = 1.0 / (1.0 + math.exp(self.mid / self.slope))
+        p = 1.0 / (1.0 + math.exp(-(raw - self.mid) / self.slope))
+        return float(max(0.0, (p - base) / (1.0 - base)))
 
     def fit_isotonic(self, raw: np.ndarray, labels: np.ndarray) -> None:
         order = np.argsort(raw, kind="stable")

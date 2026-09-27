@@ -122,7 +122,8 @@ class CalibratorTests(unittest.TestCase):
         xs = np.linspace(0, 1.5, 50)
         ys = [c(x) for x in xs]
         self.assertTrue(np.all(np.diff(ys) >= 0))
-        self.assertAlmostEqual(c(0.55), 0.5)
+        self.assertAlmostEqual(c(0.55), 0.5, delta=0.002)
+        self.assertEqual(c(0.0), 0.0)
 
     def test_isotonic_fit_is_monotonic(self):
         rng = np.random.default_rng(1)
