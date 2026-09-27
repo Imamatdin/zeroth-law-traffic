@@ -1,5 +1,7 @@
 node_modules/
 dist/
 shots/
-# Exported pipeline data is committed for the static build (the root .gitignore excludes data/ dirs).
+# The root .gitignore excludes every data/ dir; these two belong to the site. public/data is the exported
+# pipeline output (committed for the static build), src/data is the loader code.
 !public/data/
+!src/data/
