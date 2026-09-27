@@ -14,6 +14,7 @@ const shots = [
   { name: 'desktop-78s', w: 1440, h: 900, t: 78 },
   { name: 'phone-12s', w: 390, h: 844, t: 12.6, mobile: true },
   { name: 'phone-17s', w: 390, h: 844, t: 17.2, mobile: true },
+  { name: 'photo-overlay', w: 1440, h: 900, t: 0, photo: true },
 ];
 
 const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
@@ -26,8 +27,15 @@ for (const s of shots) {
   await page.goto(`${base}?t=${s.t}&paused`, { waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.__zlt?.renderer?.current);
   await page.evaluate(() => document.fonts.ready);
+  if (s.photo) {
+    await page.evaluate(() => {
+      window.__zlt.setLayers((l) => ({ ...l, photo: true, follow: false, notes: false, trails: false, field: false }));
+      window.__zlt.renderer.current.resetView();
+    });
+  }
   await page.waitForTimeout(2500);
-  await page.screenshot({ path: `${out}/${s.name}.png` });
+  if (s.photo) await page.locator('.stage').screenshot({ path: `${out}/${s.name}.png` });
+  else await page.screenshot({ path: `${out}/${s.name}.png` });
   if (s.name.startsWith('desktop-12')) await page.screenshot({ path: `${out}/${s.name}-full.png`, fullPage: true });
   await ctx.close();
 }
