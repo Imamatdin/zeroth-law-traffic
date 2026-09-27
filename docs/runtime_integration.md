@@ -4,15 +4,15 @@
 
 `src/models_registry.py` requires `weights/yolo11m.pt` at an explicit repository-relative location. It reads that checkpoint once when imported and prepares two inference backends, one for each part, before the harness's per-video timer. It then exercises three synthetic frames through each real input shape, including preprocessing, forward and NMS, at import. No video is read during import. Ultralytics online checks and automatic package installation are disabled. Missing weights fail clearly. CUDA device 0 uses FP16; otherwise inference uses CPU FP32. Dependencies include the headless Ultralytics distribution to avoid a second OpenCV installation.
 
-Each consumer gets its own predictor state and each video gets a fresh tracker. The two parts have separate inference backends. ByteTrack's global ID allocator is isolated during tracker operations. Its clock advances at the base stride of three, including empty updates for guard-skipped observations, so the two-second lost-track buffer does not accidentally become minutes long. Large strides still lose continuity; this is a quality cost, not a tracking solution.
+Each consumer gets its own predictor state and each video gets a fresh tracker. The two parts have separate inference backends. ByteTrack's global ID allocator is isolated during tracker operations. It updates only on inference observations and rescales its time buffer, elapsed track clocks and Kalman velocity/covariance when the observed stride changes. Unconfirmed new objects therefore survive skipped inference frames. Sparse observations still reduce motion/association accuracy.
 
 Part A CPU decoding uses the FFmpeg binary bundled in the pinned imageio-ffmpeg wheel, eight decoder and filter threads, `select=not(mod(n\,3))`, then scaling to width 1920 with bicubic/bt601/centered horizontal chroma. Source indices are 0,3,6,... and times are index/fps. Boxes are restored to native dimensions before tracking and scene rules. Signals use scaled lamp cells at every decoded sample, including inference-skipped samples. Native-resolution equivalence with OpenCV does **not** imply scaled-pixel equivalence.
 
 The OpenCV fallback sequentially grabs every source frame and retrieves selected frames. It resumes after the last successfully emitted FFmpeg index, without duplicating observations. It uses INTER_AREA, so the fallback has a different preprocessing signature. Failure and transition are logged; it may be slower. H.264 interframes still require decoding.
 
-Part A invokes `src.features.stitching.prepare_tracks(tracks, width=width, height=height)` when that module exists, expecting `(tracks, info)`. Coordinates and dimensions are native pixels; rich `info` is logged. Absence is a logged pass-through; errors in a present hook propagate. The hook is not present on this branch's base and belongs to Claude's main commit 893e89a. The world model runs after stitching, followed by `run_engines(..., only_enabled=True)`, which already performs segment postprocessing, then `to_official`. No sample-specific answers or perception cache reads occur in submission inference.
+Part A invokes `src.features.stitching.prepare_tracks(tracks, width=width, height=height)` when that module exists, expecting `(tracks, info)`. Coordinates and dimensions are native pixels; rich `info` is logged. Absence is a logged pass-through; errors in a present hook propagate. The stitching hook is included in the integrated submission. The world model runs after stitching, followed by `run_engines(..., only_enabled=True)`, which already performs segment postprocessing, then `to_official`. No sample-specific answers or perception cache reads occur in submission inference.
 
-Part B only consumes the current BGR frame and metadata supplied by the harness. It maintains independent causal tracks, starts at stride three, and returns its last score immediately for skipped frames. The score is deliberately 0.0 until risk logic is integrated.
+Part B only consumes the current BGR frame and metadata supplied by the harness. It maintains independent causal tracks, starts at stride three, and returns its last score immediately for skipped frames. It feeds the analytic causal risk model with lifetime class votes, current-frame rider exclusion and a one-second last-known signal hold. Risk is no longer a zero placeholder.
 
 ## Budget and reproducibility limits
 
@@ -20,7 +20,7 @@ Part A has 1.25 times video duration; Part B has 1.55 times duration. The remain
 
 This guard cannot guarantee 3x on arbitrary machines: the harness must decode every frame in B, and A must decode interframes even when sampling. Mandatory decode, a single slow call, fallback restarts, or expensive event logic can exhaust the budget. CPU-only functional execution is not evidence of quality-preserving T4 performance. Profile both detector paths, host decode and full harness on a real T4 before acceptance.
 
-Adaptive inference indices depend on wall-clock timing; enabled event predictions can therefore differ between runs. Current all-disabled events and zero risk can give identical prediction payloads without establishing general reproducibility. The official harness also writes run-specific timing logs into `predictions.json`: compare the `team` and `videos` payload separately and report full-file differences honestly. No timing data is stripped from the original harness outputs.
+Adaptive inference indices depend on wall-clock timing; enabled event predictions can therefore differ between runs. The model registry seeds Python/NumPy/PyTorch to zero and requests deterministic algorithms, but this does not eliminate guard timing sensitivity. The official harness also writes run-specific timing logs into `predictions.json`: compare the `team` and `videos` payload separately and report full-file differences honestly. No timing data is stripped from the original harness outputs.
 
 Event context retains the base stride three, with actual source timestamps on observations; terminal segment extension remains the base step. Sparse tracks after guard widening need event-quality review. No thresholds are changed to conceal preprocessing or sampling differences.
 
@@ -35,19 +35,14 @@ The script checks the exact source string, size, mtime, checkpoint digest and pe
 ## Remaining integration gates
 
 - Measure FP16 YOLO11m 960 with `scripts/t4_profile.py`, and the full harness with `scripts/t4_end_to_end.py` on a single T4, with its eight-core CPU and clean dependencies. The detector-only profiler is copied unchanged from `eng/runtime`; its prescaled input is OpenCV INTER_AREA, whereas the end-to-end script exercises the actual FFmpeg path. No branch merge is implied.
-- Merge Claude's completed stitching/event/risk work separately and repeat enabled-event quality and runtime checks.
+- Validate each enabled event on locked labels; stitching and causal risk are already integrated.
 - Include the local checkpoint in the offline submission archive and validate installation on the actual judge OS/Python/CUDA combination. The development environment is not a clean judge installation.
 
 ## Kaggle full harness
 
 Use a fresh subprocess after installing dependencies and placing the checkpoint inside the repository. This script pins one visible GPU, verifies it is a T4, runs two full unchanged-harness passes at the official 3x limit, validates both outputs, and saves all stdout/stderr plus per-video ratios and equality checks. It rejects an existing output directory. It also reports whole-process elapsed time, which includes import/warm-up, separately from the official per-video time. Empty outputs caused by timeout are treated as failures.
 
-Check `nvidia-smi` before installing. The default Linux PyPI resolution selects CUDA 13, whose driver compatibility starts at R580 ([NVIDIA compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)). For a CUDA 12 driver environment, PyTorch publishes the same pinned versions as CUDA 12.6 wheels ([torch](https://download.pytorch.org/whl/cu126/torch/), [torchvision](https://download.pytorch.org/whl/cu126/torchvision/)). An explicit pre-install avoids silently retaining a CPU-only wheel:
-
-```bash
-python -m pip install torch==2.14.0+cu126 torchvision==0.29.0+cu126 --index-url https://download.pytorch.org/whl/cu126
-python -m pip install -r requirements.txt
-```
+Check `nvidia-smi` before installing. requirements.txt now explicitly pins torch 2.10.0+cu126 and torchvision 0.25.0+cu126. Install with `python -m pip install -r requirements.txt`; see docs/linux_cuda_install.md for the Linux hash lock and driver limits. Do not preinstall the old CUDA 13/default-wheel versions.
 
 Run installation with internet before the offline evaluation. These GPU installation commands are documented from official wheel availability, not locally GPU-tested; verify driver compatibility and the full run on the actual host.
 

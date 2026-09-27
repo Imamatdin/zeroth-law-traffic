@@ -2,6 +2,7 @@
 data/
 cache/
 outputs/
+outputs-clean-install.*/
 *.mp4
 *.avi
 *.mov

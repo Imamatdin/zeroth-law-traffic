@@ -2,10 +2,23 @@
 import copy
 import json
 import os
+import random
 from pathlib import Path
+# Set before importing CUDA libraries; seed every RNG before model construction.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 import torch
 import numpy as np
 from src.perception.detector import UltralyticsDetector
+
+SEED = 0
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+torch.use_deterministic_algorithms(True, warn_only=True)
 
 # Missing optional dependencies must fail, never invoke pip during judging.
 os.environ["YOLO_AUTOINSTALL"] = "false"
