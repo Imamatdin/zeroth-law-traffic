@@ -131,7 +131,7 @@ congestion:
   frame_edge_px: 8
   merge_gap_s: 5.0
 
-illegal_turn:
+illegal_turn: &turns
   enabled: false
   vehicle_classes: [2, 3, 4, 5]
   min_speed_rel: 0.5          # body heights/s; slower samples carry no reliable heading
@@ -146,4 +146,9 @@ illegal_turn:
   u_turn_deg: 150             # at or above this it is a U-turn (illegal_u_turn)
   lane_lookback_s: 5.0        # lane-arrow zone the vehicle was in up to this long before turning
   frame_edge_px: 8
+  merge_gap_s: 0.0
+
+illegal_u_turn:
+  <<: *turns                  # same turn finder and thresholds as illegal_turn
+  enabled: false
   merge_gap_s: 0.0
