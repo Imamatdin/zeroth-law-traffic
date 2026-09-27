@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 
 from src.contracts import Event
-from src.events import (accident, congestion, failure_to_yield, illegal_turn, illegal_u_turn,
+from src.events import (accident, congestion, failure_to_yield, fire_smoke, illegal_turn, illegal_u_turn,
                         jaywalking, near_miss, red_light, road_obstacle, solid_line_crossing, stop_line,
                         stopped_vehicle, wrong_way)
 from src.events.base import VideoContext
@@ -18,7 +18,7 @@ ENGINES = {"red_light": red_light.detect, "stop_line": stop_line.detect, "jaywal
            "failure_to_yield": failure_to_yield.detect, "solid_line_crossing": solid_line_crossing.detect,
            "congestion": congestion.detect, "illegal_turn": illegal_turn.detect,
            "illegal_u_turn": illegal_u_turn.detect, "near_miss": near_miss.detect, "accident": accident.detect,
-           "road_obstacle": road_obstacle.detect}
+           "road_obstacle": road_obstacle.detect, "fire_smoke": fire_smoke.detect}
 
 
 def load_config(path: str | Path) -> dict:
