@@ -186,3 +186,35 @@ near_miss:
   clear_dist_h: 1.5           # clear of each other: this far apart and no longer closing
   max_event_s: 6.0
   merge_gap_s: 0.5
+
+accident:
+  enabled: false
+  vehicle_classes: [2, 3, 4, 5]
+  vel_window_s: 0.6
+  min_heading_speed_h: 0.5
+  frame_edge_px: 8
+  rider_overlap: 0.5
+  ped_margin_box_h: 0.5
+  max_pair_dist_h: 8.0
+  footprint_depth: 0.35       # lower band of the box = ground footprint
+  contact_overlap: 0.1        # footprint overlap (fraction of the smaller) that counts as contact
+  approach_s: 1.0             # closing speed / speed before contact looked up over this long
+  impact_closing_h: 1.0       # candidate without the risk model: touching while closing this fast
+  risk_lookback_s: 5.0        # candidate from the risk model: it watched this pair within this ...
+  risk_candidate: 0.3         # ... at this risk or higher
+  impact_before_s: 0.3        # impact searched around the first contact
+  impact_after_s: 1.0
+  impact_decel_h_s2: 4.0      # abrupt deceleration (box heights/s^2); a hard brake is ~3.5 ...
+  impact_yaw_deg_s: 60        # ... or yaw jump, up to
+  impact_yaw_max_deg_s: 150   # physical yaw; faster is heading noise
+  max_box_change: 0.25
+  still_h: 0.2                # standing still (box heights/s)
+  min_post_stop_s: 2.0        # post-impact stop lasts this long ...
+  min_end_stop_s: 1.0         # ... or this long when the video or track ends
+  post_window_s: 3.0          # and begins within this long of the contact
+  stay_close_h: 1.5           # vehicles stop next to each other
+  max_event_s: 30.0
+  fixed_contact_fraction: 0.3 # fixed object: this share of the footprint on a kerb, refuge or median
+  fixed_speed_h: 1.5          # arriving at least this fast
+  fixed_impact_factor: 1.5    # with a clearly abrupt stop (x impact thresholds)
+  merge_gap_s: 1.0
