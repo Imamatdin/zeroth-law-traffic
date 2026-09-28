@@ -1,7 +1,8 @@
 """Same perception, stitching, world, events and causal risk components as solution.py.
 
 No import of submission model registry: this CPU profile owns one model loaded
-once and reused sequentially. Part B decodes again and owns independent state.
+once and reused sequentially. The demo shares sampled detections with causal risk before offline stitching.
+The frozen judging pipeline is not imported or modified.
 """
 import json
 import os
@@ -33,11 +34,11 @@ COLUMNS = ['frame', 't', 'track_id', 'cls', 'score', 'x1', 'y1', 'x2', 'y2', 'fx
 
 @dataclass(frozen=True)
 class Profile:
-    name: str = 'cpu-yolo11m-640-s9'
-    detector: str = 'yolo11m.pt'
+    name: str = 'cpu-yolo11n-640-720p-8fps-shared'
+    detector: str = 'yolo11n.pt'
     imgsz: int = 640
-    stride: int = 9
-    decode_width: int = 960
+    analysis_fps: float = 8.0
+    decode_width: int = 1280
     threads: int = 2
     device: str = 'cpu'
     half: bool = False
@@ -59,7 +60,7 @@ class Engine:
             conf=config['detector']['conf'], iou=config['detector']['iou'],
             device='cpu', half=False, prescale_width=self.profile.decode_width)
         self.detector.predict([np.zeros((540, 960, 3), np.uint8)])
-        self.config = load_config(ROOT / 'configs/events.yaml')
+        self.config = load_config(ROOT / 'demo/events.yaml')
         self.atlas = json.loads((ROOT / 'configs/atlas.json').read_text())
 
     @staticmethod
@@ -82,23 +83,45 @@ class Engine:
         if not matched:
             scene.road = np.array([[0, 0], [meta['width'], 0], [meta['width'], meta['height']], [0, meta['height']]], float)
         profile = self.profile
+        stride = max(1, round(meta['fps'] / profile.analysis_fps))
+        risk = RiskModel(scene, self.atlas if matched else None)
+        risk.reset(meta)
+        curve, evidence, poses = [], [], []
         rows, signals, times, detections = [], [], [], []
         tracker = PrivateTracker(meta['fps'], self.tracker_config)
         small_scene = None
-        stream = sampled_frames(path, meta, profile.stride, profile.threads, profile.decode_width)
+        stream = sampled_frames(path, meta, stride, profile.threads, profile.decode_width)
         try:
             for idx, frame in stream:
                 t = idx / meta['fps']
                 det = restore(self.detector.predict([frame])[0], frame.shape, meta)
+                current_signals = []
                 if matched:
                     if small_scene is None:
                         small_scene = Scene.load(ROOT / 'configs/camera.yaml', frame.shape[1], frame.shape[0])
-                    signals.extend(self.signals(frame, small_scene, t, idx))
+                    current_signals = self.signals(frame, small_scene, t, idx)
+                    signals.extend(current_signals)
                 times.append((idx, t))
                 for box, cls, score in zip(det.xyxy, det.cls, det.score):
                     detections.append([idx, round(t, 3), int(cls), round(float(score), 4), *[round(float(v), 2) for v in box]])
-                for tr in tracker.update(det, idx):
+                observed = tracker.update(det, idx)
+                for tr in observed:
                     rows.append((idx, tr.t, tr.track_id, tr.cls, tr.score, *tr.xyxy, *tr.foot_point))
+                # Only current raw observations enter risk; stitching runs after this pass.
+                score = risk.update(observed, t, {r['signal']: r['state'] for r in current_signals})
+                curve.append([t, score])
+                ev = dict(risk.last_evidence)
+                evidence.append(ev)
+                point = None
+                if 'pair' in ev:
+                    points = []
+                    for tid in ev['pair']:
+                        st = risk.tracks[tid]
+                        p = np.array(st.samples[-1][1:3])
+                        v = np.array(st.vels[-1][1:3])
+                        points.append(p + v * min(ev['tca_s'], 5))
+                    point = np.mean(points, axis=0)
+                poses.append(point)
                 progress('detecting', (idx + 1) / meta['n_frames'])
         finally:
             stream.close()
@@ -116,43 +139,14 @@ class Engine:
             series = pd.DataFrame(signals)
             timelines = {sid: SignalTimeline.from_series(series, sid) for sid in series.signal.unique()} if len(series) else {}
             ctx = VideoContext(meta['video_id'], meta['fps'], meta['width'], meta['height'],
-                               meta['duration'], profile.stride, world, scene, timelines, Atlas(self.atlas))
+                               meta['duration'], stride, world, scene, timelines, Atlas(self.atlas))
             raw, segments = run_engines(ctx, self.config, only_enabled=True)
         progress('events', 1)
         replay, mapping = replay_document(tracks, world, times, meta)
         events = event_document(raw, segments, self.config, matched)
-        # Separate video pass, tracker and causal state. No Part A rows enter risk.
-        tracker = PrivateTracker(meta['fps'], self.tracker_config)
-        risk = RiskModel(scene, self.atlas if matched else None)
-        risk.reset(meta)
-        curve, evidence, poses = [], [], []
-        stream = sampled_frames(path, meta, profile.stride, profile.threads, profile.decode_width)
-        progress('risk', 0)
-        try:
-            for idx, frame in stream:
-                t = idx / meta['fps']
-                det = restore(self.detector.predict([frame])[0], frame.shape, meta)
-                observed = tracker.update(det, idx)
-                sig = {r['signal']: r['state'] for r in self.signals(frame, small_scene, t, idx)} if matched else {}
-                score = risk.update(observed, t, sig)
-                curve.append([t, score])
-                ev = dict(risk.last_evidence)
-                evidence.append(ev)
-                point = None
-                if 'pair' in ev:
-                    points = []
-                    for tid in ev['pair']:
-                        st = risk.tracks[tid]
-                        p = np.array(st.samples[-1][1:3])
-                        v = np.array(st.vels[-1][1:3])
-                        points.append(p + v * min(ev['tca_s'], 5))
-                    point = np.mean(points, axis=0)
-                poses.append(point)
-                progress('risk', (idx + 1) / meta['n_frames'])
-        finally:
-            stream.close()
+        progress('risk', 1)
         elapsed = time.perf_counter() - started
-        return dict(metadata=dict(profile=asdict(profile), scene_check=gate,
+        return dict(metadata=dict(profile={**asdict(profile), "stride": stride, "effective_analysis_fps": round(meta["fps"] / stride, 3)}, scene_check=gate,
                     scene_events_skipped=not matched, processing_seconds=round(elapsed, 3),
                     wall_time_ratio=round(elapsed / meta['duration'], 3),
                     warnings=[] if matched else ['Camera mismatch: scene-dependent events, signals and atlas disabled; generic risk is uncalibrated.']),

@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from starlette.datastructures import UploadFile
 
-from demo.video import InvalidVideo, MAX_BYTES, inspect_video
+from demo.video import InvalidVideo, MAX_BYTES, MAX_SECONDS, inspect_video
 
 LOG = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def create_app(processor=None, max_bytes=MAX_BYTES, ttl=3600, max_results=20):
     @app.get('/health')
     async def health():
         return dict(ready=getattr(app.state, 'ready', False), busy=busy,
-                    max_seconds=120, max_bytes=max_bytes, result_ttl_seconds=ttl)
+                    max_seconds=MAX_SECONDS, max_bytes=max_bytes, result_ttl_seconds=ttl)
 
     async def run_job(jid, directory, path, filename):
         nonlocal busy
@@ -77,7 +77,7 @@ def create_app(processor=None, max_bytes=MAX_BYTES, ttl=3600, max_results=20):
         def update(stage, fraction):
             if job['state'] != 'running':
                 return
-            ranges = {'decoding': (0, .02), 'detecting': (.02, .46), 'events': (.48, .04), 'risk': (.52, .48)}
+            ranges = {'decoding': (0, .02), 'detecting': (.02, .88), 'events': (.90, .08), 'risk': (.98, .02)}
             base, share = ranges[stage]
             job.update(stage=stage, progress=round(min(.999, base + share * fraction), 4))
         def progress(stage, fraction):

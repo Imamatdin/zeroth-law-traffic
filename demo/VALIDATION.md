@@ -1,4 +1,25 @@
-# Demo validation — 2026-09-27
+# Fast demo verification — 2026-09-28
+
+Post-submission profile: YOLO11n, 1280 x 720 maximum decode, target 8 analysis
+fps, 60-second limit, shared current-frame observations for detection and risk.
+Official submission files and the submission-final tag are unchanged.
+
+- 8 demo tests passed in 10.118 s on Windows, using the existing demo venv.
+- Official harness/evaluator hash check passed.
+- Frontend production build passed (54 modules).
+- HF Docker and ZeroGPU creation were rejected. User selected Railway instead.
+- Railway deployment succeeded; public health and Vercel-origin CORS checks passed.
+- Real API jobs passed: C3905 4.938 s excerpt in 5.692 s; foreign 5 s excerpt
+  in 5.577 s. Correct camera match/rejection. Full 60 s resource use is unverified.
+- The tests check 8 detector calls for 8 samples (not two passes), effective
+  sample rate, camera rejection, API errors, cleanup, concurrency and expiry.
+
+The historical measurements below describe the previous YOLO11m/two-pass
+profile only. They are not measurements of the new fast profile.
+
+---
+
+# Demo validation â€” 2026-09-27
 
 Base: integration-3 (`7f29a61`), merged into `eng/demo` with merge commit
 `5901aa7`. No submission files were edited for the demo.
@@ -7,10 +28,10 @@ Base: integration-3 (`7f29a61`), merged into `eng/demo` with merge commit
 
 ```text
 python -B -m unittest discover -s demo/tests -v
-Ran 8 tests in 23.926s — OK
+Ran 8 tests in 23.926s â€” OK
 
 python -B -m unittest discover -s tests -p test_official_kit.py -v
-Ran 1 test in 0.003s — OK
+Ran 1 test in 0.003s â€” OK
 
 uv pip compile demo/requirements.txt --python-version 3.11 --python-platform x86_64-manylinux_2_28 --only-binary :all: --index-strategy unsafe-best-match --output-file private/demo-linux-resolved.txt
 Resolved 54 packages in 12.87s
@@ -38,8 +59,8 @@ two CPU threads. Both Part A and independent causal Part B are included.
 
 | Input | Duration | Processing | Ratio | Tracks | Detections | Scene gate |
 |---|---:|---:|---:|---:|---:|---|
-| 3840×2160 | 20.053 s | 161.082 s | 8.033× | 61 | 2,608 | Match, similarity 0.9360 |
-| 1920×1080 | 20.120 s | 118.233 s | 5.876× | 58 | 2,627 | Resolution mismatch, similarity 0.9694 |
+| 3840Ã—2160 | 20.053 s | 161.082 s | 8.033Ã— | 61 | 2,608 | Match, similarity 0.9360 |
+| 1920Ã—1080 | 20.120 s | 118.233 s | 5.876Ã— | 58 | 2,627 | Resolution mismatch, similarity 0.9694 |
 
 Engine construction/model warm-up took 22.134 s separately; this excludes Python
 module import time. Processing includes CPU decoding, both inference passes,

@@ -116,5 +116,5 @@ def risk_document(curve, evidence, poses, mapping, meta, matched):
         percentiles=dict(raw=percentiles(raw), risk=percentiles(risk)),
         t=[round(t, 3) for t, _ in curve], risk=risk, raw=raw,
         smoothed=[e['smoothed'] for e in evidence], pairs=pairs,
-        note='Causal Part B with independent tracker. Scores are demo estimates, not validated accident probabilities. '
+        note='Causal demo risk from shared current-frame observations, before offline stitching. Scores are demo estimates, not validated accident probabilities. '
              'Pair ids map to Part A display tracks where possible; px/py is a display extrapolation.')

@@ -12,4 +12,4 @@ RUN python demo/download_weights.py && chown -R user:user /app/weights
 USER user
 ENV HOME=/home/user PYTHONUNBUFFERED=1 YOLO_AUTOINSTALL=false YOLO_OFFLINE=true CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=2 MPLCONFIGDIR=/tmp/matplotlib
 EXPOSE 7860
-CMD ["uvicorn", "demo.app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]
+CMD ["sh", "-c", "exec uvicorn demo.app:app --host 0.0.0.0 --port ${PORT:-7860} --workers 1"]

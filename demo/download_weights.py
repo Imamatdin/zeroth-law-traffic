@@ -4,13 +4,15 @@ from pathlib import Path
 import urllib.error
 import urllib.request
 
-URL = 'https://github.com/Imamatdin/zeroth-law-traffic/releases/download/weights-v1/yolo11m.pt'
-SHA256 = 'd5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95'
+URL = 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt'
+SHA256 = '0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1'
 
 
 def main():
-    target = Path('weights/yolo11m.pt')
+    target = Path('weights/yolo11n.pt')
     target.parent.mkdir(exist_ok=True)
+    if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() == SHA256:
+        return
     partial = target.with_suffix('.partial')
     digest = hashlib.sha256()
     try:
@@ -19,10 +21,10 @@ def main():
                 digest.update(chunk)
                 out.write(chunk)
         if digest.hexdigest() != SHA256:
-            raise RuntimeError('weights-v1/yolo11m.pt checksum mismatch')
+            raise RuntimeError('Ultralytics v8.3.0/yolo11n.pt checksum mismatch')
         partial.replace(target)
     except urllib.error.HTTPError as exc:
-        raise RuntimeError(f'weights-v1/yolo11m.pt unavailable (HTTP {exc.code}). Publish the public release asset before building the Space.') from exc
+        raise RuntimeError(f'Ultralytics v8.3.0/yolo11n.pt unavailable (HTTP {exc.code}). The pinned upstream asset must be accessible to the Space builder.') from exc
     finally:
         partial.unlink(missing_ok=True)
 

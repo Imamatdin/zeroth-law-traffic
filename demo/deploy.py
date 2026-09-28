@@ -11,7 +11,8 @@ def main():
     parser.add_argument('--space', required=True)
     parser.add_argument('--origin', help='Exact Vercel origin, when available')
     args = parser.parse_args()
-    token = os.getenv('HF_TOKEN')
+    cached = Path.home() / '.cache' / 'huggingface' / 'token'
+    token = os.getenv('HF_TOKEN') or (cached.read_text(encoding='utf-8').strip() if cached.exists() else None)
     if not token:
         raise SystemExit('Set HF_TOKEN to a Hugging Face write token, then rerun this command.')
     from huggingface_hub import HfApi

@@ -33,12 +33,15 @@ class EngineTests(unittest.TestCase):
             stages = []
             with patch('demo.engine.run_engines', side_effect=AssertionError('Must not run camera rules')):
                 result = engine.process(path, lambda stage, _: stages.append(stage))
+            self.assertEqual(engine.detector.predict.call_count, 8)  # one inference per sample, shared with risk
+            self.assertEqual(result['metadata']['profile']['stride'], 4)
+            self.assertEqual(result['metadata']['profile']['effective_analysis_fps'], 7.5)
             self.assertTrue(result['metadata']['scene_events_skipped'])
             self.assertEqual(result['events']['segments'], [])
             self.assertEqual(result['signal']['signals'], {})
             self.assertGreater(len(result['replay']['tracks']), 0)
-            self.assertEqual(len(result['risk']['risk']), 4)
-            self.assertEqual(len(result['detections']['rows']), 4)
+            self.assertEqual(len(result['risk']['risk']), 8)
+            self.assertEqual(len(result['detections']['rows']), 8)
             self.assertEqual(set(stages), {'decoding', 'detecting', 'events', 'risk'})
             # Same fields as web/public/data/C3905 documents.
             self.assertEqual(set(result['replay']), {'video','fps','duration','width','height','q','t','classes','units','tracks'})

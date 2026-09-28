@@ -61,6 +61,7 @@ class ApiTests(unittest.TestCase):
         processor = FakeProcessor(block=True)
         with TestClient(create_app(processor)) as c:
             try:
+                self.assertEqual(c.get('/health').json()['max_seconds'], 60)
                 r = self.upload(c)
                 self.assertEqual(r.status_code, 202, r.text)
                 jid = r.json()['job_id']
@@ -93,7 +94,7 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(self.upload(c, 'x.avi').status_code, 415)
             self.assertEqual(self.upload(c, body=b'not an mp4').status_code, 422)
             self.assertEqual(self.upload(c, body=b'0' * 4096).status_code, 413)
-            with patch('demo.app.inspect_video', side_effect=InvalidVideo('too_long', 'Video must be at most 120 seconds.')):
+            with patch('demo.app.inspect_video', side_effect=InvalidVideo('too_long', 'Video must be at most 60 seconds.')):
                 r = self.upload(c)
                 self.assertEqual(r.status_code, 422)
                 self.assertEqual(r.json()['detail']['code'], 'too_long')
@@ -106,8 +107,8 @@ class ApiTests(unittest.TestCase):
             cap.isOpened.return_value = True
             cap.get.side_effect = lambda prop: {cv2.CAP_PROP_FPS: 30,
                 cv2.CAP_PROP_FRAME_WIDTH: 96, cv2.CAP_PROP_FRAME_HEIGHT: 64,
-                cv2.CAP_PROP_FRAME_COUNT: 3630}[prop]
-            with self.assertRaisesRegex(InvalidVideo, '120 seconds'):
+                cv2.CAP_PROP_FRAME_COUNT: 1830}[prop]
+            with self.assertRaisesRegex(InvalidVideo, '60 seconds'):
                 inspect_video(self.video)
             cap.release.assert_called_once()
 

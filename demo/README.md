@@ -1,7 +1,7 @@
 # CPU live demo
 
-This backend uses the same detector adapter, independent ByteTrack trackers,
-Part A stitching, world features, enabled event registry/postprocessing, and
+This backend uses the same detector adapter, a ByteTrack tracker,
+offline stitching, world features, enabled event registry/postprocessing, and
 causal RiskModel as `solution.py`. It does not import the submission model
 registry or change the judging profile. The source base includes `integration-3`, including causal class votes and signal holding.
 
@@ -18,7 +18,7 @@ uvicorn demo.app:app --host 127.0.0.1 --port 7860 --workers 1
 ```
 
 If you already have the verified repository checkpoint, place it at
-`weights/yolo11m.pt` instead of downloading again. The server never downloads
+`weights/yolo11n.pt` instead of downloading again. The server never downloads
 weights. Open http://localhost:7860/docs or GET `/health`.
 
 **Exactly one worker/process/replica.** Reservation begins before multipart
@@ -34,8 +34,8 @@ All URLs below are relative to `VITE_API_BASE` (no trailing slash).
 
 ### POST /jobs
 
-Multipart field **`video`**, one `.mp4` file. Max **120 seconds**, **3 GiB**,
-4096 x 2160 pixels (either orientation), 1â€“120 fps. Server checks container
+Multipart field **`video`**, one `.mp4` file. Max **60 seconds**, **3 GiB**,
+4096 x 2160 pixels (either orientation), 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“120 fps. Server checks container
 signature, metadata and first-frame decode; the full passes also reject corrupt
 or truncated media. Network stalls during upload time out after 30 seconds.
 
@@ -52,9 +52,9 @@ Response **202**:
 ```
 
 `state`: `running | done | error`. Stages: `decoding`, `detecting`, `events`,
-`risk`, then `done` or `error`. `progress` is a monotonic 0â€“1 work fraction, not
+`risk`, then `done` or `error`. `progress` is a monotonic 0ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“1 work fraction, not
 a time estimate. Decode and inference are streamed together during detecting;
-risk includes its own second CPU decode/inference pass. Poll every 1â€“2 seconds.
+risk is evaluated causally from the shared detections, before offline stitching. Poll every 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“2 seconds.
 Completion adds `result_url`, `metadata`, and `finished`. Failure adds
 `error: {code, message}`. GET `/health` reports `ready`, `busy`, and limits.
 
@@ -87,30 +87,9 @@ track_ids/evidence; `events.submitted` contains official triples.
 `near_stop_crossings` is empty: that extra offline diagnostic is not computed.
 No field/EDA/atlas document or uploaded video is served by this API.
 
-The existing web `client.js` slot currently expects a result inline in job
-status with simple arrays. Update it to fetch `result_url` on `done`, then pass
-`bundle.replay`, `bundle.events`, `bundle.risk`, `bundle.signal` to the existing
-export consumers. For a simple result list use `bundle.events.submitted`.
-
-```js
-const form = new FormData(); form.append('video', file);
-const upload = await fetch(`${base}/jobs`, {method: 'POST', body: form});
-if (!upload.ok) throw new Error(JSON.stringify(await upload.json()));
-const {job_id} = await upload.json();
-for (;;) {
-  const response = await fetch(`${base}/jobs/${job_id}`);
-  if (!response.ok) throw new Error(`Status HTTP ${response.status}`);
-  const job = await response.json();
-  onProgress(job);
-  if (job.state === 'error') throw new Error(job.error.message);
-  if (job.state === 'done') {
-    const response = await fetch(`${base}${job.result_url}`);
-    if (!response.ok) throw new Error(`Result HTTP ${response.status}`);
-    return await response.json();
-  }
-  await new Promise(resolve => setTimeout(resolve, 1500));
-}
-```
+The web client polls status, fetches `result_url` when done, and renders local
+video playback with normalized track boxes, event seeking and the risk curve.
+Unmatched scenes never receive reference-camera overlays or event rules.
 
 Errors use `detail: {code,message}` for application errors. Standard malformed
 multipart/schema requests may use FastAPI's validation error shape. Codes/status:
@@ -120,9 +99,14 @@ multipart/schema requests may use FastAPI's validation error shape. Codes/status
 
 ## Profile and camera check
 
-`cpu-yolo11m-640-s9`: YOLO11m, imgsz 640, stride 9 in both passes, CPU FP32,
-two PyTorch/FFmpeg threads, CPU decode scaled to width 960, native coordinates
-restored. Confidence/IoU/tracker settings come from `configs/perception.json`.
+`cpu-yolo11n-640-720p-8fps-shared`: YOLO11n, imgsz 640, CPU FP32,
+two PyTorch/FFmpeg threads, CPU decode bounded to 1280 x 720, native coordinates
+restored. The stride is round(source_fps / 8), at least 1: 29.97 fps footage is
+analyzed at 7.49 fps, while 25 fps footage is analyzed at 8.33 fps. There is one
+shared decode/detection/tracking pass. Risk receives raw observations causally
+before the offline event analysis and track stitching. This demo profile is not
+the official Part B interface; the frozen submission remains untouched.
+`demo/events.yaml` is the exact reviewed config from submission-final. Confidence/IoU/tracker settings come from `configs/perception.json`.
 The image-size/stride reduction changes accuracy; it is reported in every result.
 No adaptive runtime guard or judging-time cutoff is applied to the demo.
 
@@ -143,19 +127,22 @@ disabled; the demo never silently forces development engines on.
 Build from repo root: `docker build -f demo/Dockerfile -t zlt-demo .`
 Run: `docker run --rm -p 7860:7860 zlt-demo`.
 The image listens on 7860, runs as UID 1000, and downloads **only**
-`https://github.com/Imamatdin/zeroth-law-traffic/releases/download/weights-v1/yolo11m.pt`
+`https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt`
 at build time, checking SHA256
-`d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95`.
-The GitHub repo/release asset must be publicly readable by the Space builder.
+`0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1`.
+The pinned Ultralytics release asset must be publicly readable by the Space builder.
 Missing assets or checksum mismatches fail the build with a clear error.
 
-Deployment prerequisites checked on 2026-09-27: HF_TOKEN is unset here and the public weights-v1 release returns HTTP 404. No Space has been deployed. Publish the release asset before the following steps.
+On 2026-09-28, HF returned HTTP 402 when creating a Docker CPU Space on a
+free account. A PRO subscription is now required for this hosting tier. No
+Space is claimed deployed until its build and live health check succeed.
 
 Exact deployment steps once the release is available (PowerShell):
 
 ```powershell
 python -m pip install huggingface-hub==2.0.0
-$env:HF_TOKEN = Read-Host 'Hugging Face write token' -MaskInput
+# Set HF_TOKEN privately, or save it with the Hugging Face CLI login.
+# demo.deploy also reads ~/.cache/huggingface/token.
 python -m demo.deploy --space YOUR_ACCOUNT/zeroth-law-traffic-demo
 Remove-Item Env:HF_TOKEN
 ```
@@ -181,6 +168,33 @@ python -B -m unittest discover -s tests -p test_official_kit.py -v
 python -m demo.benchmark PATH_TO_4K_CLIP PATH_TO_1080P_CLIP --out private/demo-timing
 ```
 
-Benchmark includes CPU decode + detection in both passes, events, risk and
+Benchmark includes the shared CPU decode + detection pass, events, risk and
 export conversion. Model preparation is measured separately. See
 `demo/VALIDATION.md` for measured local results and deployment status.
+
+## Railway deployment (2026-09-28)
+
+Live API: https://zeroth-law-traffic-production.up.railway.app
+
+Railway uses `demo/Dockerfile`; its start command reads `PORT` (default 7860).
+Set `RAILWAY_DOCKERFILE_PATH=demo/Dockerfile` and
+`DEMO_CORS_ORIGINS=https://zeroth-law-traffic.vercel.app` on the service.
+Use `demo/railway.json` as its config file, or copy that file to `railway.json`
+in a staged deployment root. Deploy only src/, configs/, demo/, third_party/,
+solution.py and evaluate.py; no local caches, uploads or credentials.
+Expose the assigned HTTP port and check `/health` before uploading.
+
+This deployment was tested on Railway's trial with two real clips. C3905 was
+re-encoded at its native 3840x2160 resolution solely to reduce upload size.
+The foreign clip is the first five seconds of OpenCV's samples/data/vtest.avi.
+Source: https://github.com/opencv/opencv/blob/4.x/samples/data/vtest.avi
+Neither test establishes 60-second-clip memory or runtime behavior.
+
+| Clip | Duration | Processing | Tracks | Detections | Camera match |
+|---|---:|---:|---:|---:|---|
+| C3905 excerpt | 4.938 s | 5.692 s | 36 | 1347 | yes |
+| OpenCV foreign scene | 5.000 s | 5.577 s | 9 | 428 | no |
+
+The trial remains resource/credit limited. Model output is demonstration output,
+not the frozen submission's results. Weights are the pinned upstream YOLO11n
+asset documented above; weights-v1 and submission-final have not been changed.
