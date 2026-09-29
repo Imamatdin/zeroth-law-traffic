@@ -6,7 +6,7 @@ defaults:
   min_dur_s: 0.0
 
 red_light:
-  enabled: false
+  enabled: true
   stop_line: near_stop
   approach: near
   vehicle_classes: [2, 3, 4, 5]
@@ -16,7 +16,7 @@ red_light:
   merge_gap_s: 0.0
 
 stop_line:
-  enabled: false
+  enabled: true
   stop_line: near_stop
   approach: near
   vehicle_classes: [2, 3, 4, 5]
@@ -29,7 +29,7 @@ stop_line:
   merge_gap_s: 1.0
 
 jaywalking:
-  enabled: false
+  enabled: true
   min_on_road_s: 1.0          # persistence before a pedestrian counts as on the carriageway
   max_gap_s: 0.5              # hysteresis: brief off-road blips do not end the event
   walk_through_gap_s: 2.5     # a refuge/crossing contact (sample gap incl. margins) up to this long ...
@@ -44,7 +44,7 @@ jaywalking:
   min_dur_s: 1.0
 
 wrong_way:
-  enabled: false
+  enabled: true
   vehicle_classes: [2, 3, 4, 5]
   min_resultant: 0.8          # atlas cell must have a consistent direction (mean resultant length)
   min_speed_rel: 0.5          # body heights/s; slower motion gives no heading verdict
@@ -59,7 +59,7 @@ wrong_way:
   merge_gap_s: 1.0
 
 stopped_vehicle:
-  enabled: false
+  enabled: true
   vehicle_classes: [2, 3, 4, 5]
   still_rel_speed: 0.15       # body heights/s
   min_stop_s: 10.0            # spec: stationary for 10 s or more (of unexplained standing)
@@ -81,7 +81,7 @@ stopped_vehicle:
   merge_gap_s: 1.0
 
 failure_to_yield:
-  enabled: false
+  enabled: true
   vehicle_classes: [2, 3, 4, 5]
   footprint_depth: 0.5        # lower half of the box is the vehicle's ground footprint
   min_vehicle_speed_rel: 0.3  # body heights/s; slower = waiting or yielding
@@ -154,7 +154,7 @@ illegal_u_turn:
   merge_gap_s: 0.0
 
 near_miss:
-  enabled: false
+  enabled: true
   vel_window_s: 0.6           # centred velocity/acceleration fits (Part A may look ahead)
   min_heading_speed_h: 0.5    # slower objects carry no yaw rate
   frame_edge_px: 8

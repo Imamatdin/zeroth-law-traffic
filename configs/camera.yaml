@@ -16,6 +16,7 @@ verified:
   signal_vehicle: true    # median head governs the near approach (58 stop-line crossings vs colour)
   intersection: approximate
   lane_polygons: false
+  solid_lines: near_approach   # traced and overlay-checked on C3905 frames 0 and 2400; elsewhere dashed
   legal_movements: false
 
 # Everything a vehicle can drive on; sidewalks, median and islands are subtracted.
@@ -71,6 +72,27 @@ crosswalks:
                                      [0.320, 1.0], [0.305, 0.965], [0.285, 0.925], [0.265, 0.890], [0.245, 0.865],
                                      [0.215, 0.838], [0.185, 0.812], [0.160, 0.786], [0.130, 0.760], [0.095, 0.738],
                                      [0.088, 0.728]]}
+
+# Solid lane markings. The near approach's lane lines turn solid for the last stretch before the stop
+# line (traced on gridded C3905 frame-0 zooms, checked on an overlay of frames 0 and 2400); the far
+# carriageway's lane lines are dashed. The yellow edge line along the median is left out: it borders
+# the raised median, so crossing it is not a lane change.
+solid_lines:
+  - {id: near_lane_1, polyline: [[0.1721, 0.4522], [0.2149, 0.4930]]}   # kerb side; upstream hidden by parked cars
+  - {id: near_lane_2, polyline: [[0.1367, 0.3413], [0.2846, 0.4760]]}
+  - {id: near_lane_3, polyline: [[0.1813, 0.3207], [0.3550, 0.4610]]}
+  - {id: near_lane_4, polyline: [[0.2326, 0.3079], [0.4192, 0.4457]]}
+
+# Turn restrictions and lane arrows come only from signs, road markings or organizer guidance, never
+# from observed traffic (D-003); the loader rejects any other source. Checked on C3905 frames 0 and 1500
+# (full view and zooms): the signs facing traffic are a keep-right sign on the median nose and pedestrian-crossing
+# signs; there are no turn arrows on the near approach and no no-turn or no-U-turn signs. Nothing is
+# restricted, so illegal_turn and illegal_u_turn cannot fire on this map.
+#   turn_restrictions: {id, kind: u_turn | left | right | movement, zone: polygon where the turn starts,
+#                       to_zone: polygon (movement only), source: sign | marking | organizer, evidence}
+#   lane_arrows:       {id, zone: lane polygon, allowed: [straight, left, right, u_turn], source, evidence}
+turn_restrictions: []
+lane_arrows: []
 
 stop_lines:
   - {id: near_stop, points: [[0.147, 0.508], [0.488, 0.432]], approach: near, signal: median_vehicle}

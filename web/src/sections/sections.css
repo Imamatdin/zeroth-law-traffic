@@ -79,6 +79,8 @@
   color: var(--ink);
 }
 
+.pending p { min-width: 0; overflow-wrap: anywhere; }
+
 .pending-src {
   color: var(--ink-soft);
 }
@@ -187,7 +189,10 @@
   margin-bottom: var(--s-4);
 }
 
+.two-col > * { min-width: 0; }
+
 .table-scroll {
+  position: relative;
   overflow-x: auto;
   max-width: 100%;
 }
@@ -621,3 +626,13 @@
     font-size: 2rem;
   }
 }
+
+/* Uploaded footage keeps its own camera geometry. */
+.demo-playback { position: relative; margin-block: var(--s-3); }
+.demo-playback video { display: block; width: 100%; height: auto; }
+.demo-playback svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.demo-playback rect { fill: none; stroke: #fff; stroke-width: .2; filter: drop-shadow(0 1px 1px #000); }
+.demo-playback text { fill: #fff; stroke: #222; stroke-width: .08; paint-order: stroke; font-size: 1.5px; }
+.demo-seek { display: grid; gap: .5rem; }
+.demo-seek input { width: 100%; }
+.demo-result { margin-block: var(--s-5); }

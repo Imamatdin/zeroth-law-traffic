@@ -9,6 +9,8 @@ import numpy as np
 import yaml
 
 REGION_KEYS = ("crosswalks", "islands", "sidewalks", "median")
+# Where a turn restriction may come from. Observed traffic is not a source: frequency is not legality.
+RESTRICTION_SOURCES = ("sign", "marking", "organizer")
 
 
 def point_in_polygon(points: np.ndarray, polygon: np.ndarray) -> np.ndarray:
@@ -54,6 +56,9 @@ class Scene:
     road: np.ndarray | None = None
     intersection: np.ndarray | None = None
     stop_lines: dict[str, np.ndarray] = field(default_factory=dict)
+    solid_lines: dict[str, np.ndarray] = field(default_factory=dict)
+    turn_restrictions: list[dict] = field(default_factory=list)
+    lane_arrows: list[dict] = field(default_factory=list)
     signals: dict[str, dict] = field(default_factory=dict)
     approaches: dict[str, dict] = field(default_factory=dict)
     stop_line_meta: dict[str, dict] = field(default_factory=dict)
@@ -84,6 +89,16 @@ class Scene:
         for line in raw.get("stop_lines", []) or []:
             scene.stop_lines[line["id"]] = px(line["points"])
             scene.stop_line_meta[line["id"]] = {k: v for k, v in line.items() if k != "points"}
+        for line in raw.get("solid_lines", []) or []:
+            scene.solid_lines[line["id"]] = px(line["polyline"])
+        for key in ("turn_restrictions", "lane_arrows"):
+            for item in raw.get(key, []) or []:
+                if item.get("source") not in RESTRICTION_SOURCES or not item.get("evidence"):
+                    raise ValueError(f"{key} {item.get('id')}: needs source in {RESTRICTION_SOURCES} and evidence")
+                parsed = {**item, "zone": px(item["zone"])}
+                if "to_zone" in item:
+                    parsed["to_zone"] = px(item["to_zone"])
+                getattr(scene, key).append(parsed)
         for app in raw.get("approaches", []) or []:
             scene.approaches[app["id"]] = app
         for sig in raw.get("signals", []) or []:
