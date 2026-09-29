@@ -18,7 +18,7 @@ export async function health() {
 export async function submitVideo(file, onProgress) {
   const body = new FormData();
   body.append('video', file);
-  const { job_id } = await request('/jobs', { method: 'POST', body });
+  const { job_id } = await request('/jobs', { method: 'POST', body, signal: AbortSignal.timeout(30 * 60 * 1000) });
   const deadline = Date.now() + 30 * 60 * 1000;
   while (Date.now() < deadline) {
     const s = await request(`/jobs/${job_id}`);

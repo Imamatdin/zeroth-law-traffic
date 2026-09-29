@@ -19,7 +19,7 @@ try {
     await page.getByLabel('Upload MP4 video').setInputFiles(resolve('../private/test-clips', file));
     const responsePromise = page.waitForResponse(r => r.url().includes('/jobs/') && r.url().endsWith('/result') && r.status() === 200, { timeout: 900000 });
     await page.getByRole('button', { name: 'Run the pipeline', exact: true }).click();
-    const response = await responsePromise;
+    const response = await Promise.race([responsePromise, page.locator('.demo-error').waitFor({ timeout: 900000 }).then(async () => { throw new Error(await page.locator('.demo-error').innerText()); })]);
     const result = await response.json();
     if (longRun) {
       assert.ok(result.replay.duration >= 119.9 && result.replay.duration <= 120);
