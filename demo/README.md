@@ -34,7 +34,7 @@ All URLs below are relative to `VITE_API_BASE` (no trailing slash).
 
 ### POST /jobs
 
-Multipart field **`video`**, one `.mp4` file. Max **60 seconds**, **3 GiB**,
+Multipart field **`video`**, one `.mp4` file. Max **120 seconds**, **3 GiB**,
 4096 x 2160 pixels (either orientation), 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“120 fps. Server checks container
 signature, metadata and first-frame decode; the full passes also reject corrupt
 or truncated media. Network stalls during upload time out after 30 seconds.

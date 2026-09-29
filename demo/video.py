@@ -9,7 +9,7 @@ import imageio_ffmpeg
 import numpy as np
 from src.runtime.decode import _read_frame
 
-MAX_SECONDS = 60.0
+MAX_SECONDS = 120.0
 MAX_BYTES = 3 * 1024**3
 
 
@@ -35,7 +35,7 @@ def inspect_video(path):
             raise InvalidVideo('resolution_limit', 'Maximum supported resolution is 4096 x 2160 pixels (either orientation).')
         duration = n / fps
         if duration > MAX_SECONDS:
-            raise InvalidVideo('too_long', 'Video must be at most 60 seconds.')
+            raise InvalidVideo('too_long', 'Video must be at most 120 seconds.')
         ok, first = cap.read()
         if not ok:
             raise InvalidVideo('invalid_video', 'Cannot decode the first frame.')
@@ -66,7 +66,7 @@ def sampled_frames(path, meta, stride, threads=2, width=1280):
                     break
                 idx = count * stride
                 if idx / meta['fps'] >= MAX_SECONDS:
-                    raise InvalidVideo('too_long', 'Decoded video exceeds 60 seconds.')
+                    raise InvalidVideo('too_long', 'Decoded video exceeds 120 seconds.')
                 count += 1
                 yield idx, np.frombuffer(buf, np.uint8).reshape(height, width, 3)
             code = process.wait(timeout=30)

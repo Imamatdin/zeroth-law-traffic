@@ -61,7 +61,7 @@ export default function Demo() {
     finally { setRunning(false); }
   };
   const online = status === 'online';
-  return <Section id="demo" n="5" title="Try it on your own clip" lede="Upload an MP4 of up to 60 seconds. Follow detections on your video and inspect its risk curve. Camera-specific events are reported only when the view matches our reference camera.">
+  return <Section id="demo" n="5" title="Try it on your own clip" lede="Upload an MP4 of up to 120 seconds. Follow detections on your video and inspect its risk curve. Camera-specific events are reported only when the view matches our reference camera.">
     <form className="demo" onSubmit={run}>
       <p className={`demo-status ${online ? 'is-on' : ''}`} role="status"><span className="dot" aria-hidden="true" />
         {online ? 'Backend online.' : status === 'checking' ? 'Checking the backend…' : 'Backend unavailable or waking up.'}
@@ -69,7 +69,7 @@ export default function Demo() {
       {!online && apiAvailable() && <button className="ink-btn" type="button" onClick={check}>Check again</button>}
       <label className="drop"><input aria-label="Upload MP4 video" type="file" accept="video/mp4" disabled={!online || running} onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setError(null); setJob(null); }} />
         <span className="hand drop-h">{file ? file.name : 'choose an .mp4'}</span>
-        <span className="muted">{file ? `${(file.size / 1e6).toFixed(1)} MB` : '60 seconds maximum · MP4 · up to 3 GiB'}</span>
+        <span className="muted">{file ? `${(file.size / 1e6).toFixed(1)} MB` : '120 seconds maximum · MP4 · up to 3 GiB'}</span>
       </label>
       <button type="submit" className="ink-btn" disabled={!online || !file || running}>{running ? 'Processing…' : 'Run the pipeline'}</button>
       {running && <p className="num" role="status">{job ? `${job.stage} · ${Math.round(job.progress * 100)}%` : 'Uploading…'}</p>}
