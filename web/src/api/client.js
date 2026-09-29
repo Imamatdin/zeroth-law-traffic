@@ -1,28 +1,31 @@
-// Slot for the live demo backend (FastAPI on a Hugging Face CPU Space), not built yet.
-// Set VITE_API_BASE at build time; with it unset the demo section says the backend is offline.
-export const API_BASE = import.meta.env.VITE_API_BASE ?? '';
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
 
 export const apiAvailable = () => API_BASE !== '';
 
-export async function health() {
-  const r = await fetch(`${API_BASE}/health`);
-  if (!r.ok) throw new Error(`health ${r.status}`);
-  return r.json();
+async function request(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, { signal: AbortSignal.timeout(120000), ...options });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(body?.detail?.message ?? `Server returned HTTP ${response.status}. Please try again.`);
+  return body;
 }
 
-// Expected contract: POST /jobs (multipart "video") -> {job_id}; GET /jobs/{id} -> {state, progress,
-// result?: {events: [[start, end, label]], risk: [[t, score]], tracks_url?}}. Mirrors predictions.json.
+export async function health() {
+  const result = await request('/health');
+  if (!result?.ready) throw new Error('The demo is still starting.');
+  return result;
+}
+
 export async function submitVideo(file, onProgress) {
   const body = new FormData();
   body.append('video', file);
-  const r = await fetch(`${API_BASE}/jobs`, { method: 'POST', body });
-  if (!r.ok) throw new Error(`upload ${r.status}`);
-  const { job_id } = await r.json();
-  for (;;) {
-    const s = await (await fetch(`${API_BASE}/jobs/${job_id}`)).json();
+  const { job_id } = await request('/jobs', { method: 'POST', body });
+  const deadline = Date.now() + 30 * 60 * 1000;
+  while (Date.now() < deadline) {
+    const s = await request(`/jobs/${job_id}`);
     onProgress?.(s);
-    if (s.state === 'done') return s.result;
-    if (s.state === 'error') throw new Error(s.error ?? 'job failed');
+    if (s.state === 'done') return request(`/jobs/${job_id}/result`);
+    if (s.state === 'error') throw new Error(s.error?.message ?? 'Processing failed.');
     await new Promise((res) => setTimeout(res, 1500));
   }
+  throw new Error('Processing is taking more than 30 minutes. The server may still be working.');
 }
